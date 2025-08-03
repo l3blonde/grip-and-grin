@@ -13,10 +13,22 @@
 <body>
 <div class="container">
     <header class="site-header">
-        <a href="/" class="logo">
-            <img src="/logo.svg" alt="Grip & Grin Logo" class="logo-svg">
-            <span class="logo-text">Grip &amp; Grin</span>
-        </a>
+        <div class="header-content">
+            <a href="/" class="logo">
+                <img src="/logo.svg" alt="Grip & Grin Logo" class="logo-svg">
+                <span class="logo-text">Grip &amp; Grin</span>
+            </a>
+
+            <nav class="main-nav">
+                <a href="/" class="nav-link">News</a>
+                <a href="/login" class="nav-link">Login</a>
+            </nav>
+
+            <form class="search-form" action="/search" method="GET">
+                <input type="text" name="q" placeholder="Search articles..." class="search-input" value="{{ app.request.query.get('q') }}">
+                <button type="submit" class="search-button">Search</button>
+            </form>
+        </div>
     </header>
 
     <main>

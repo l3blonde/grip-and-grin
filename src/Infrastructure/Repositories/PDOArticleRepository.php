@@ -45,6 +45,71 @@ class PDOArticleRepository implements ArticleRepositoryInterface
         return $row ? $this->mapRowToArticle($row) : null;
     }
 
+    public function findAllPublishedPaginated(int $limit, int $offset): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT * FROM articles 
+            WHERE published_at IS NOT NULL AND published_at <= NOW() 
+            ORDER BY published_at DESC
+            LIMIT :limit OFFSET :offset
+        ");
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $articles = [];
+        while ($row = $stmt->fetch()) {
+            $articles[] = $this->mapRowToArticle($row);
+        }
+        return $articles;
+    }
+
+    public function countAllPublished(): int
+    {
+        $stmt = $this->db->query("
+            SELECT COUNT(*) as count FROM articles 
+            WHERE published_at IS NOT NULL AND published_at <= NOW()
+        ");
+        $result = $stmt->fetch();
+        return (int) $result['count'];
+    }
+
+    public function searchArticles(string $query, int $limit, int $offset): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT * FROM articles 
+            WHERE published_at IS NOT NULL AND published_at <= NOW()
+            AND (title LIKE :query OR content LIKE :query)
+            ORDER BY published_at DESC
+            LIMIT :limit OFFSET :offset
+        ");
+        $searchTerm = '%' . $query . '%';
+        $stmt->bindValue(':query', $searchTerm, PDO::PARAM_STR);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $articles = [];
+        while ($row = $stmt->fetch()) {
+            $articles[] = $this->mapRowToArticle($row);
+        }
+        return $articles;
+    }
+
+    public function countSearchResults(string $query): int
+    {
+        $stmt = $this->db->prepare("
+            SELECT COUNT(*) as count FROM articles 
+            WHERE published_at IS NOT NULL AND published_at <= NOW()
+            AND (title LIKE :query OR content LIKE :query)
+        ");
+        $searchTerm = '%' . $query . '%';
+        $stmt->bindValue(':query', $searchTerm, PDO::PARAM_STR);
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return (int) $result['count'];
+    }
+
     private function mapRowToArticle(array $row): Article
     {
         return new Article(

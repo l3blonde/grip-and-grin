@@ -3,7 +3,8 @@ declare(strict_types=1);
 
 namespace GripAndGrin\Presentation\Controllers;
 
-use GripAndGrin\Application\UseCases\GetArticlesUseCase;
+use GripAndGrin\Application\UseCases\GetPaginatedArticlesUseCase;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Twig\Environment;
 
@@ -11,13 +12,14 @@ class HomeController
 {
     public function __construct(
         private readonly Environment $twig,
-        private readonly GetArticlesUseCase $getArticlesUseCase
+        private readonly GetPaginatedArticlesUseCase $getPaginatedArticlesUseCase
     ) {}
 
-    public function show(): Response
+    public function show(Request $request): Response
     {
-        $articles = $this->getArticlesUseCase->execute();
-        $content = $this->twig->render('home.html.twig', ['articles' => $articles]);
+        $page = max(1, (int) $request->query->get('page', 1));
+        $result = $this->getPaginatedArticlesUseCase->execute($page);
+        $content = $this->twig->render('home.html.twig', $result);
         return new Response($content);
     }
 }

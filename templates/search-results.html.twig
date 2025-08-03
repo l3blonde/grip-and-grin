@@ -1,0 +1,45 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Search Results for "{{ query }}" | {{ parent() }}{% endblock %}
+
+{% block content %}
+    <div class="search-results">
+        <h1>Search Results for "{{ query }}"</h1>
+
+        {% if articles|length > 0 %}
+            <p class="search-summary">Found {{ articles|length }} result(s)</p>
+
+            <section class="article-list">
+                {% for article in articles %}
+                    <article class="article-summary">
+                        <h2 class="article-title">
+                            <a href="/article/{{ article.slug }}">{{ article.title }}</a>
+                        </h2>
+                        <p class="article-excerpt">{{ article.content|striptags|slice(0, 150) }}...</p>
+                        <div class="article-meta">
+                            <span>Published on {{ article.publishedAt|date("F j, Y") }}</span>
+                            <a href="/article/{{ article.slug }}" class="read-more">Read More &rarr;</a>
+                        </div>
+                    </article>
+                {% endfor %}
+            </section>
+
+            {% if totalPages > 1 %}
+                <nav class="pagination">
+                    {% if hasPreviousPage %}
+                        <a href="/search?q={{ query|url_encode }}&page={{ previousPage }}" class="pagination-link pagination-prev">← Previous</a>
+                    {% endif %}
+
+                    <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
+
+                    {% if hasNextPage %}
+                        <a href="/search?q={{ query|url_encode }}&page={{ nextPage }}" class="pagination-link pagination-next">Next →</a>
+                    {% endif %}
+                </nav>
+            {% endif %}
+        {% else %}
+            <p class="no-results">No articles found matching "{{ query }}". Try different keywords.</p>
+            <a href="/" class="back-link">← Back to all articles</a>
+        {% endif %}
+    </div>
+{% endblock %}

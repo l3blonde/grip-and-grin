@@ -5,10 +5,13 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use GripAndGrin\Application\UseCases\GetArticleBySlugUseCase;
 use GripAndGrin\Application\UseCases\GetArticlesUseCase;
+use GripAndGrin\Application\UseCases\GetPaginatedArticlesUseCase;
+use GripAndGrin\Application\UseCases\SearchArticlesUseCase;
 use GripAndGrin\Infrastructure\Database\DatabaseConnection;
 use GripAndGrin\Infrastructure\Repositories\PDOArticleRepository;
 use GripAndGrin\Presentation\Controllers\ArticleController;
 use GripAndGrin\Presentation\Controllers\HomeController;
+use GripAndGrin\Presentation\Controllers\SearchController;
 use Symfony\Component\HttpFoundation\Request;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
@@ -32,10 +35,13 @@ $container[PDOArticleRepository::class] = new PDOArticleRepository($container[Da
 // Use Cases
 $container[GetArticlesUseCase::class] = new GetArticlesUseCase($container[PDOArticleRepository::class]);
 $container[GetArticleBySlugUseCase::class] = new GetArticleBySlugUseCase($container[PDOArticleRepository::class]);
+$container[GetPaginatedArticlesUseCase::class] = new GetPaginatedArticlesUseCase($container[PDOArticleRepository::class]);
+$container[SearchArticlesUseCase::class] = new SearchArticlesUseCase($container[PDOArticleRepository::class]);
 
 // Controllers
-$container[HomeController::class] = new HomeController($container['twig'], $container[GetArticlesUseCase::class]);
+$container[HomeController::class] = new HomeController($container['twig'], $container[GetPaginatedArticlesUseCase::class]);
 $container[ArticleController::class] = new ArticleController($container['twig'], $container[GetArticleBySlugUseCase::class]);
+$container[SearchController::class] = new SearchController($container['twig'], $container[SearchArticlesUseCase::class]);
 
 // Simple Router
 $request = Request::createFromGlobals();
@@ -43,7 +49,9 @@ $path = $request->getPathInfo();
 $parts = explode('/', trim($path, '/'));
 
 if ($path === '/' || $path === '') {
-    $response = $container[HomeController::class]->show();
+    $response = $container[HomeController::class]->show($request);
+} elseif ($path === '/search') {
+    $response = $container[SearchController::class]->search($request);
 } elseif (count($parts) === 2 && $parts[0] === 'article') {
     $slug = $parts[1];
     $response = $container[ArticleController::class]->show($slug);

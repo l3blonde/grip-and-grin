@@ -13,4 +13,18 @@ interface ArticleRepositoryInterface
     public function findAllPublished(): array;
 
     public function findBySlug(string $slug): ?Article;
+
+    /**
+     * @return Article[]
+     */
+    public function findAllPublishedPaginated(int $limit, int $offset): array;
+
+    public function countAllPublished(): int;
+
+    /**
+     * @return Article[]
+     */
+    public function searchArticles(string $query, int $limit, int $offset): array;
+
+    public function countSearchResults(string $query): int;
 }

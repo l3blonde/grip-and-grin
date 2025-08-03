@@ -19,4 +19,18 @@
             <p>No articles found.</p>
         {% endfor %}
     </section>
+
+    {% if totalPages > 1 %}
+        <nav class="pagination">
+            {% if hasPreviousPage %}
+                <a href="/?page={{ previousPage }}" class="pagination-link pagination-prev">← Previous</a>
+            {% endif %}
+
+            <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
+
+            {% if hasNextPage %}
+                <a href="/?page={{ nextPage }}" class="pagination-link pagination-next">Next →</a>
+            {% endif %}
+        </nav>
+    {% endif %}
 {% endblock %}
