@@ -1,0 +1,22 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Home | {{ parent() }}{% endblock %}
+
+{% block content %}
+    <section class="article-list">
+        {% for article in articles %}
+            <article class="article-summary">
+                <h2 class="article-title">
+                    <a href="/article/{{ article.slug }}">{{ article.title }}</a>
+                </h2>
+                <p class="article-excerpt">{{ article.content|striptags|slice(0, 150) }}...</p>
+                <div class="article-meta">
+                    <span>Published on {{ article.publishedAt|date("F j, Y") }}</span>
+                    <a href="/article/{{ article.slug }}" class="read-more">Read More &rarr;</a>
+                </div>
+            </article>
+        {% else %}
+            <p>No articles found.</p>
+        {% endfor %}
+    </section>
+{% endblock %}

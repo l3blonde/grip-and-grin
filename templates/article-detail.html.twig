@@ -1,0 +1,15 @@
+{% extends "base.html.twig" %}
+
+{% block title %}{{ article.title }} | {{ parent() }}{% endblock %}
+
+{% block content %}
+    <article class="article-full">
+        <header class="article-header">
+            <h1 class="article-title-full">{{ article.title }}</h1>
+            <p class="article-meta-full">Published on {{ article.publishedAt|date("F j, Y") }}</p>
+        </header>
+        <div class="article-content">
+            {{ article.content|nl2br }}
+        </div>
+    </article>
+{% endblock %}

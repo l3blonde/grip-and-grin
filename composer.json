@@ -1,0 +1,16 @@
+{
+  "name": "v0/grip-and-grin",
+  "description": "A classic car news website built with PHP and Clean Architecture.",
+  "type": "project",
+  "require": {
+    "php": "^8.1",
+    "twig/twig": "^3.0",
+    "symfony/http-foundation": "^6.4",
+    "monolog/monolog": "^3.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "GripAndGrin\\": "src/"
+    }
+  }
+}

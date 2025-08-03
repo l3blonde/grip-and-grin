@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Grip & Grin{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="/logo.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="container">
+    <header class="site-header">
+        <a href="/" class="logo">
+            <img src="/logo.svg" alt="Grip & Grin Logo" class="logo-svg">
+            <span class="logo-text">Grip &amp; Grin</span>
+        </a>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; {{ "now"|date("Y") }} Grip & Grin. All rights reserved.</p>
+    </footer>
+</div>
+</body>
+</html>
