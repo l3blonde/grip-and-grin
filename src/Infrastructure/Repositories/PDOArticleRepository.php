@@ -6,6 +6,7 @@ namespace GripAndGrin\Infrastructure\Repositories;
 use DateTime;
 use GripAndGrin\Domain\Entities\Article;
 use GripAndGrin\Domain\Interfaces\ArticleRepositoryInterface;
+use GripAndGrin\Domain\ValueObjects\Image;
 use GripAndGrin\Infrastructure\Database\DatabaseConnection;
 use PDO;
 
@@ -146,6 +147,20 @@ class PDOArticleRepository implements ArticleRepositoryInterface
 
     private function mapRowToArticle(array $row): Article
     {
+        $featuredImage = null;
+        
+        if (!empty($row['image_thumbnail_path'])) {
+            $featuredImage = new Image(
+                $row['image_original_path'] ?? '',
+                $row['image_thumbnail_path'],
+                $row['image_medium_path'] ?? '',
+                $row['image_full_path'] ?? '',
+                $row['image_alt_text'] ?? '',
+                (int)($row['image_width'] ?? 0),
+                (int)($row['image_height'] ?? 0)
+            );
+        }
+
         return new Article(
             (int)$row['id'],
             $row['title'],
@@ -154,7 +169,8 @@ class PDOArticleRepository implements ArticleRepositoryInterface
             (int)$row['author_id'],
             (int)$row['category_id'],
             $row['published_at'] ? new DateTime($row['published_at']) : null,
-            new DateTime($row['created_at'])
+            new DateTime($row['created_at']),
+            $featuredImage
         );
     }
 }
