@@ -8,6 +8,19 @@
             <h1 class="article-title-full">{{ article.title }}</h1>
             <p class="article-meta-full">Published on {{ article.publishedAt|date("F j, Y") }}</p>
         </header>
+
+        {% if article.hasFeaturedImage %}
+            <div class="article-featured-image">
+                <picture>
+                    <source srcset="{{ article.featuredImage.fullPath }}" type="image/webp">
+                    <img src="{{ article.featuredImage.fullPath|replace({'.webp': '.jpg'}) }}"
+                         alt="{{ article.featuredImage.altText }}"
+                         class="featured-image"
+                         loading="lazy">
+                </picture>
+            </div>
+        {% endif %}
+
         <div class="article-content">
             {{ article.content|nl2br }}
         </div>

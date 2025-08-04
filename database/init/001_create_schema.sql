@@ -27,7 +27,7 @@ CREATE TABLE `articles` (
 
 -- Seed data
 INSERT INTO `users` (`id`, `username`, `email`) VALUES
-    (1, 'Marianne', 'marilegrelle@gmail.com');
+    (1, 'Enzo', 'enzo@ferrari.com');
 
 INSERT INTO `categories` (`id`, `name`, `slug`) VALUES
                                                     (1, 'European Classics', 'european-classics'),

@@ -6,13 +6,29 @@
     <section class="article-list">
         {% for article in articles %}
             <article class="article-summary">
-                <h2 class="article-title">
-                    <a href="/article/{{ article.slug }}">{{ article.title }}</a>
-                </h2>
-                <p class="article-excerpt">{{ article.content|striptags|slice(0, 150) }}...</p>
-                <div class="article-meta">
-                    <span>Published on {{ article.publishedAt|date("F j, Y") }}</span>
-                    <a href="/article/{{ article.slug }}" class="read-more">Read More &rarr;</a>
+                {% if article.hasFeaturedImage %}
+                    <div class="article-image">
+                        <a href="/article/{{ article.slug }}">
+                            <picture>
+                                <source srcset="{{ article.featuredImage.thumbnailPath }}" type="image/webp">
+                                <img src="{{ article.featuredImage.thumbnailPath|replace({'.webp': '.jpg'}) }}"
+                                     alt="{{ article.featuredImage.altText }}"
+                                     class="article-thumbnail"
+                                     loading="lazy">
+                            </picture>
+                        </a>
+                    </div>
+                {% endif %}
+
+                <div class="article-content">
+                    <h2 class="article-title">
+                        <a href="/article/{{ article.slug }}">{{ article.title }}</a>
+                    </h2>
+                    <p class="article-excerpt">{{ article.content|striptags|slice(0, 150) }}...</p>
+                    <div class="article-meta">
+                        <span>Published on {{ article.publishedAt|date("F j, Y") }}</span>
+                        <a href="/article/{{ article.slug }}" class="read-more">Read More &rarr;</a>
+                    </div>
                 </div>
             </article>
         {% else %}

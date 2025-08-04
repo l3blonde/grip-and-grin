@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace GripAndGrin\Domain\Entities;
 
 use DateTime;
+use GripAndGrin\Domain\ValueObjects\Image;
 
 class Article
 {
@@ -15,7 +16,8 @@ class Article
         private readonly int $authorId,
         private readonly int $categoryId,
         private readonly ?DateTime $publishedAt,
-        private readonly DateTime $createdAt
+        private readonly DateTime $createdAt,
+        private readonly ?Image $featuredImage = null
     ) {}
 
     public function getId(): int
@@ -56,5 +58,15 @@ class Article
     public function getCreatedAt(): DateTime
     {
         return $this->createdAt;
+    }
+
+    public function getFeaturedImage(): ?Image
+    {
+        return $this->featuredImage;
+    }
+
+    public function hasFeaturedImage(): bool
+    {
+        return $this->featuredImage !== null;
     }
 }
