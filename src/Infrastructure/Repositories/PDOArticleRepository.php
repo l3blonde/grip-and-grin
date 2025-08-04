@@ -148,7 +148,8 @@ class PDOArticleRepository implements ArticleRepositoryInterface
     private function mapRowToArticle(array $row): Article
     {
         $featuredImage = null;
-        
+
+        // Check if article has image data
         if (!empty($row['image_thumbnail_path'])) {
             $featuredImage = new Image(
                 $row['image_original_path'] ?? '',

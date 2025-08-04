@@ -21,7 +21,15 @@
 
             <nav class="main-nav">
                 <a href="/" class="nav-link">News</a>
-                <a href="/login" class="nav-link">Login</a>
+                {% if session.isLoggedIn %}
+                    <div class="user-nav">
+                        <span class="user-welcome">Welcome, {{ session.currentUsername }}!</span>
+                        <a href="/logout" class="logout-link">Logout</a>
+                    </div>
+                {% else %}
+                    <a href="/login" class="nav-link">Login</a>
+                    <a href="/register" class="nav-link">Register</a>
+                {% endif %}
             </nav>
 
             <form class="search-form" action="/search" method="GET">
