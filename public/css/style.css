@@ -315,6 +315,7 @@ h3 {
 .pagination-link:hover {
     background-color: #555555;
     text-decoration: none;
+    color: #ffffff;
 }
 
 .pagination-info {
