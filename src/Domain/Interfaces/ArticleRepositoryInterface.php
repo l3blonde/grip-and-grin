@@ -27,4 +27,11 @@ interface ArticleRepositoryInterface
     public function searchArticles(string $query, int $limit, int $offset): array;
 
     public function countSearchResults(string $query): int;
+
+    /**
+     * @return Article[]
+     */
+    public function findByCategoryPaginated(int $categoryId, int $limit, int $offset): array;
+
+    public function countByCategory(int $categoryId): int;
 }

@@ -1,0 +1,46 @@
+{% extends "base.html.twig" %}
+
+{% block title %}{{ category.name }} | {{ parent() }}{% endblock %}
+
+{% block content %}
+    <div class="category-header">
+        <h1>{{ category.name }}</h1>
+        <p class="category-description">{{ category.description }}</p>
+    </div>
+
+    {% if articles|length > 0 %}
+        <section class="article-list">
+            {% for article in articles %}
+                <article class="article-summary">
+                    <h2 class="article-title">
+                        <a href="/article/{{ article.slug }}">{{ article.title }}</a>
+                    </h2>
+                    <p class="article-excerpt">{{ article.content|striptags|slice(0, 150) }}...</p>
+                    <div class="article-meta">
+                        <span>Published on {{ article.publishedAt|date("F j, Y") }}</span>
+                        <a href="/article/{{ article.slug }}" class="read-more">Read More &rarr;</a>
+                    </div>
+                </article>
+            {% endfor %}
+        </section>
+
+        {% if totalPages > 1 %}
+            <nav class="pagination">
+                {% if hasPreviousPage %}
+                    <a href="/category/{{ category.slug }}?page={{ previousPage }}" class="pagination-link pagination-prev">← Previous</a>
+                {% endif %}
+
+                <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
+
+                {% if hasNextPage %}
+                    <a href="/category/{{ category.slug }}?page={{ nextPage }}" class="pagination-link pagination-next">Next →</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="no-articles">
+            <p>No articles found in this category yet.</p>
+            <a href="/" class="back-link">← Back to all articles</a>
+        </div>
+    {% endif %}
+{% endblock %}

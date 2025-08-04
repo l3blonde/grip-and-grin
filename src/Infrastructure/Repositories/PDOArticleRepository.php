@@ -110,6 +110,40 @@ class PDOArticleRepository implements ArticleRepositoryInterface
         return (int) $result['count'];
     }
 
+    public function findByCategoryPaginated(int $categoryId, int $limit, int $offset): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT * FROM articles 
+            WHERE category_id = :category_id 
+            AND published_at IS NOT NULL AND published_at <= NOW() 
+            ORDER BY published_at DESC
+            LIMIT :limit OFFSET :offset
+        ");
+        $stmt->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $articles = [];
+        while ($row = $stmt->fetch()) {
+            $articles[] = $this->mapRowToArticle($row);
+        }
+        return $articles;
+    }
+
+    public function countByCategory(int $categoryId): int
+    {
+        $stmt = $this->db->prepare("
+            SELECT COUNT(*) as count FROM articles 
+            WHERE category_id = :category_id 
+            AND published_at IS NOT NULL AND published_at <= NOW()
+        ");
+        $stmt->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return (int) $result['count'];
+    }
+
     private function mapRowToArticle(array $row): Article
     {
         return new Article(
