@@ -18,17 +18,14 @@ class RegisterUserUseCase
 
     public function execute(string $username, string $email, string $password): User
     {
-        // Validate input
         $username = trim($username);
         if (empty($username) || strlen($username) < 3) {
             throw new InvalidArgumentException('Username must be at least 3 characters long');
         }
 
-        // Create value objects (they validate themselves)
         $emailVO = new Email($email);
         $passwordVO = new Password($password);
 
-        // Check if user already exists
         if ($this->userRepository->emailExists($emailVO->getValue())) {
             throw new InvalidArgumentException('Email already exists');
         }
@@ -37,9 +34,8 @@ class RegisterUserUseCase
             throw new InvalidArgumentException('Username already exists');
         }
 
-        // Create new user
         $user = new User(
-            0, // Will be set by database
+            0,
             $username,
             $emailVO->getValue(),
             $passwordVO->getHashedValue(),

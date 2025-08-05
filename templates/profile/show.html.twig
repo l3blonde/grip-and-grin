@@ -1,0 +1,100 @@
+{% extends "base.html.twig" %}
+
+{% block title %}{{ user.fullName }} | Profile | {{ parent() }}{% endblock %}
+
+{% block content %}
+    <div class="profile-page">
+        <div class="profile-header">
+            <div class="profile-info">
+                <h1>{{ user.fullName }}</h1>
+                <p class="username">@{{ user.username }}</p>
+                <span class="role-badge role-{{ user.role.value }}">{{ user.role.value|title }}</span>
+            </div>
+            <div class="profile-actions">
+                <a href="/profile/edit" class="button primary">Edit Profile</a>
+                {% if user.canManageArticles %}
+                    <a href="/admin/dashboard" class="button secondary">Admin Dashboard</a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if app.request.query.get('updated') %}
+            <div class="success-message">Profile updated successfully!</div>
+        {% endif %}
+
+        <div class="profile-content">
+            <div class="profile-details">
+                <h2>Profile Information</h2>
+
+                <div class="detail-group">
+                    <label>Full Name</label>
+                    <p>{{ user.fullName }}</p>
+                </div>
+
+                <div class="detail-group">
+                    <label>Username</label>
+                    <p>@{{ user.username }}</p>
+                </div>
+
+                <div class="detail-group">
+                    <label>Email</label>
+                    <p>
+                        {{ user.email }}
+                        {% if user.isEmailVerified %}
+                            <span class="verified-badge">✓ Verified</span>
+                        {% else %}
+                            <span class="unverified-badge">⚠ Unverified</span>
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="detail-group">
+                    <label>Role</label>
+                    <p>
+                        <span class="role-badge role-{{ user.role.value }}">{{ user.role.value|title }}</span>
+                        {% if user.role.value == 'admin' %}
+                            <small>Full system access</small>
+                        {% elseif user.role.value == 'editor' %}
+                            <small>Can create and edit articles</small>
+                        {% else %}
+                            <small>Standard user access</small>
+                        {% endif %}
+                    </p>
+                </div>
+
+                {% if user.bio %}
+                    <div class="detail-group">
+                        <label>Bio</label>
+                        <p>{{ user.bio|nl2br }}</p>
+                    </div>
+                {% endif %}
+
+                <div class="detail-group">
+                    <label>Member Since</label>
+                    <p>{{ user.createdAt|date("F j, Y") }}</p>
+                </div>
+            </div>
+
+            <div class="profile-stats">
+                <h2>Account Statistics</h2>
+
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-number">{{ user.createdAt|date_modify("+0 days")|date("z") + 1 }}</span>
+                        <span class="stat-label">Days as Member</span>
+                    </div>
+
+                    <div class="stat-item">
+                        <span class="stat-number">{{ user.role.value|title }}</span>
+                        <span class="stat-label">Account Type</span>
+                    </div>
+
+                    <div class="stat-item">
+                        <span class="stat-number">{{ user.isActive ? 'Active' : 'Inactive' }}</span>
+                        <span class="stat-label">Status</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

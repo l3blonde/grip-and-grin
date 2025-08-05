@@ -13,6 +13,8 @@ interface UserRepositoryInterface
 
     public function findByUsername(string $username): ?User;
 
+    public function findAll(): array;
+
     public function save(User $user): User;
 
     public function emailExists(string $email): bool;

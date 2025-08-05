@@ -1,0 +1,90 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Edit Profile | {{ parent() }}{% endblock %}
+
+{% block content %}
+    <div class="profile-edit">
+        <div class="admin-header">
+            <h1>Edit Profile</h1>
+            <a href="/profile" class="button secondary">← Back to Profile</a>
+        </div>
+
+        {% if error %}
+            <div class="error-message">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="/profile/update" class="profile-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="first_name">First Name</label>
+                    <input type="text" id="first_name" name="first_name" value="{{ first_name ?? user.firstName ?? '' }}" maxlength="50">
+                </div>
+
+                <div class="form-group">
+                    <label for="last_name">Last Name</label>
+                    <input type="text" id="last_name" name="last_name" value="{{ last_name ?? user.lastName ?? '' }}" maxlength="50">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="username">Username *</label>
+                    <input type="text" id="username" name="username" value="{{ username ?? user.username }}" required minlength="3" maxlength="50">
+                    <small>At least 3 characters, letters, numbers, and underscores only</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email" value="{{ email ?? user.email }}" required maxlength="100">
+                    {% if user.isEmailVerified %}
+                        <small class="verified">✓ Email verified</small>
+                    {% else %}
+                        <small class="unverified">⚠ Email not verified</small>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="bio">Bio</label>
+                <textarea id="bio" name="bio" rows="4" maxlength="500" placeholder="Tell us about yourself...">{{ bio ?? user.bio ?? '' }}</textarea>
+                <small>Characters remaining: <span id="bio-count">500</span></small>
+            </div>
+
+            <div class="form-group readonly">
+                <label>Account Information</label>
+                <div class="readonly-info">
+                    <div class="info-item">
+                        <span class="label">Role:</span>
+                        <span class="role-badge role-{{ user.role.value }}">{{ user.role.value|title }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Member Since:</span>
+                        <span>{{ user.createdAt|date("F j, Y") }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="button primary">Update Profile</button>
+                <a href="/profile" class="button secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Character counter for bio
+        const bioTextarea = document.getElementById('bio');
+        const bioCount = document.getElementById('bio-count');
+
+        bioTextarea.addEventListener('input', function() {
+            const remaining = 500 - this.value.length;
+            bioCount.textContent = remaining;
+            bioCount.style.color = remaining < 50 ? '#dc3545' : '#666';
+        });
+
+        // Trigger initial count
+        bioTextarea.dispatchEvent(new Event('input'));
+    </script>
+{% endblock %}
