@@ -6,6 +6,7 @@ namespace GripAndGrin\Infrastructure\Repositories;
 use DateTime;
 use GripAndGrin\Domain\Entities\User;
 use GripAndGrin\Domain\Interfaces\UserRepositoryInterface;
+use GripAndGrin\Domain\ValueObjects\UserRole;
 use GripAndGrin\Infrastructure\Database\DatabaseConnection;
 use PDO;
 
@@ -45,6 +46,17 @@ class PDOUserRepository implements UserRepositoryInterface
         return $row ? $this->mapRowToUser($row) : null;
     }
 
+    public function findAll(): array
+    {
+        $stmt = $this->db->query("SELECT * FROM users ORDER BY created_at DESC");
+
+        $users = [];
+        while ($row = $stmt->fetch()) {
+            $users[] = $this->mapRowToUser($row);
+        }
+        return $users;
+    }
+
     public function save(User $user): User
     {
         if ($user->getId() === 0) {
@@ -70,16 +82,22 @@ class PDOUserRepository implements UserRepositoryInterface
     private function insert(User $user): User
     {
         $stmt = $this->db->prepare("
-            INSERT INTO users (username, email, password_hash, created_at, is_active) 
-            VALUES (:username, :email, :password_hash, :created_at, :is_active)
+            INSERT INTO users (username, email, password_hash, role, is_active, email_verified, first_name, last_name, bio, avatar_path, created_at) 
+            VALUES (:username, :email, :password_hash, :role, :is_active, :email_verified, :first_name, :last_name, :bio, :avatar_path, :created_at)
         ");
 
         $stmt->execute([
             'username' => $user->getUsername(),
             'email' => $user->getEmail(),
             'password_hash' => $user->getPasswordHash(),
-            'created_at' => $user->getCreatedAt()->format('Y-m-d H:i:s'),
-            'is_active' => $user->isActive() ? 1 : 0
+            'role' => $user->getRole()->getValue(),
+            'is_active' => $user->isActive() ? 1 : 0,
+            'email_verified' => $user->isEmailVerified() ? 1 : 0,
+            'first_name' => $user->getFirstName(),
+            'last_name' => $user->getLastName(),
+            'bio' => $user->getBio(),
+            'avatar_path' => $user->getAvatarPath(),
+            'created_at' => $user->getCreatedAt()->format('Y-m-d H:i:s')
         ]);
 
         $id = (int) $this->db->lastInsertId();
@@ -89,8 +107,14 @@ class PDOUserRepository implements UserRepositoryInterface
             $user->getUsername(),
             $user->getEmail(),
             $user->getPasswordHash(),
+            $user->getRole(),
             $user->getCreatedAt(),
-            $user->isActive()
+            $user->isActive(),
+            $user->isEmailVerified(),
+            $user->getFirstName(),
+            $user->getLastName(),
+            $user->getBio(),
+            $user->getAvatarPath()
         );
     }
 
@@ -98,7 +122,9 @@ class PDOUserRepository implements UserRepositoryInterface
     {
         $stmt = $this->db->prepare("
             UPDATE users 
-            SET username = :username, email = :email, password_hash = :password_hash, is_active = :is_active
+            SET username = :username, email = :email, password_hash = :password_hash, role = :role, 
+                is_active = :is_active, email_verified = :email_verified, first_name = :first_name, 
+                last_name = :last_name, bio = :bio, avatar_path = :avatar_path
             WHERE id = :id
         ");
 
@@ -107,7 +133,13 @@ class PDOUserRepository implements UserRepositoryInterface
             'username' => $user->getUsername(),
             'email' => $user->getEmail(),
             'password_hash' => $user->getPasswordHash(),
-            'is_active' => $user->isActive() ? 1 : 0
+            'role' => $user->getRole()->getValue(),
+            'is_active' => $user->isActive() ? 1 : 0,
+            'email_verified' => $user->isEmailVerified() ? 1 : 0,
+            'first_name' => $user->getFirstName(),
+            'last_name' => $user->getLastName(),
+            'bio' => $user->getBio(),
+            'avatar_path' => $user->getAvatarPath()
         ]);
 
         return $user;
@@ -120,8 +152,14 @@ class PDOUserRepository implements UserRepositoryInterface
             $row['username'],
             $row['email'],
             $row['password_hash'],
+            new UserRole($row['role']),
             new DateTime($row['created_at']),
-            (bool)$row['is_active']
+            (bool)$row['is_active'],
+            (bool)$row['email_verified'],
+            $row['first_name'],
+            $row['last_name'],
+            $row['bio'],
+            $row['avatar_path']
         );
     }
 }

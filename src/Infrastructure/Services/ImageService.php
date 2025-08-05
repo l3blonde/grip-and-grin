@@ -43,7 +43,6 @@ class ImageService
         $originalWidth = $imageInfo[0];
         $originalHeight = $imageInfo[1];
 
-        // Create different sizes
         $thumbnailPath = $this->createResizedImage($originalPath, 'thumbnails/', self::THUMBNAIL_SIZE);
         $mediumPath = $this->createResizedImage($originalPath, 'medium/', self::MEDIUM_SIZE);
         $fullPath = $this->createResizedImage($originalPath, 'full/', self::FULL_SIZE);
@@ -74,20 +73,16 @@ class ImageService
 
         $this->ensureDirectoryExists(self::UPLOAD_DIR . $subDir);
 
-        // Load source image
         $sourceImage = $this->loadImage($sourcePath);
         if (!$sourceImage) {
             throw new RuntimeException('Failed to load source image');
         }
 
-        // Calculate dimensions maintaining aspect ratio
         $sourceDimensions = [imagesx($sourceImage), imagesy($sourceImage)];
         $targetDimensions = $this->calculateAspectRatioFit($sourceDimensions, $targetSize);
 
-        // Create resized image
         $resizedImage = imagecreatetruecolor($targetDimensions['width'], $targetDimensions['height']);
 
-        // Preserve transparency for PNG
         imagealphablending($resizedImage, false);
         imagesavealpha($resizedImage, true);
 
@@ -98,15 +93,12 @@ class ImageService
             $sourceDimensions[0], $sourceDimensions[1]
         );
 
-        // Save WebP (primary)
         if (function_exists('imagewebp')) {
             imagewebp($resizedImage, $webpPath, 85);
         }
 
-        // Save JPEG (fallback)
         imagejpeg($resizedImage, $jpegPath, 85);
 
-        // Cleanup
         imagedestroy($sourceImage);
         imagedestroy($resizedImage);
 

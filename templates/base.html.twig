@@ -23,8 +23,21 @@
                 <a href="/" class="nav-link">News</a>
                 {% if session.isLoggedIn %}
                     <div class="user-nav">
-                        <span class="user-welcome">Welcome, {{ session.currentUsername }}!</span>
-                        <a href="/logout" class="logout-link">Logout</a>
+                        <div class="user-dropdown">
+                            <button class="user-dropdown-toggle">
+                                <span class="user-welcome">{{ session.currentUsername }}</span>
+                                <span class="dropdown-arrow">▼</span>
+                            </button>
+                            <div class="user-dropdown-menu">
+                                <a href="/profile" class="dropdown-item">👤 Profile</a>
+                                {% set currentUser = session.currentUserId ? app.user : null %}
+                                {% if currentUser and currentUser.canManageArticles %}
+                                    <a href="/admin/dashboard" class="dropdown-item">⚙️ Admin Dashboard</a>
+                                {% endif %}
+                                <div class="dropdown-divider"></div>
+                                <a href="/logout" class="dropdown-item logout">🚪 Logout</a>
+                            </div>
+                        </div>
                     </div>
                 {% else %}
                     <a href="/login" class="nav-link">Login</a>
@@ -56,5 +69,28 @@
         <p>&copy; {{ "now"|date("Y") }} Grip & Grin. All rights reserved.</p>
     </footer>
 </div>
+
+<script>
+    // User dropdown functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropdown = document.querySelector('.user-dropdown');
+        if (dropdown) {
+            const toggle = dropdown.querySelector('.user-dropdown-toggle');
+            const menu = dropdown.querySelector('.user-dropdown-menu');
+
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                dropdown.classList.toggle('active');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!dropdown.contains(e.target)) {
+                    dropdown.classList.remove('active');
+                }
+            });
+        }
+    });
+</script>
 </body>
 </html>

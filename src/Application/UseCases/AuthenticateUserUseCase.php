@@ -15,7 +15,6 @@ class AuthenticateUserUseCase
 
     public function execute(string $emailOrUsername, string $password): User
     {
-        // Try to find user by email first, then username
         $user = $this->userRepository->findByEmail($emailOrUsername);
         if (!$user) {
             $user = $this->userRepository->findByUsername($emailOrUsername);

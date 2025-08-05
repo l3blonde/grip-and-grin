@@ -14,6 +14,8 @@ interface ArticleRepositoryInterface
 
     public function findBySlug(string $slug): ?Article;
 
+    public function findById(int $id): ?Article;
+
     /**
      * @return Article[]
      */
@@ -34,4 +36,20 @@ interface ArticleRepositoryInterface
     public function findByCategoryPaginated(int $categoryId, int $limit, int $offset): array;
 
     public function countByCategory(int $categoryId): int;
+
+    /**
+     * @return Article[]
+     */
+    public function findAll(): array;
+
+    /**
+     * @return Article[]
+     */
+    public function findAllPaginated(int $limit, int $offset): array;
+
+    public function countAll(): int;
+
+    public function save(Article $article): Article;
+
+    public function delete(int $id): bool;
 }

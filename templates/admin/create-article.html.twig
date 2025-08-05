@@ -1,0 +1,92 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Create Article | Admin | {{ parent() }}{% endblock %}
+
+{% block content %}
+    <div class="admin-form">
+        <div class="admin-header">
+            <h1>Create New Article</h1>
+            <a href="/admin/articles" class="button secondary">← Back to Articles</a>
+        </div>
+
+        {% if error %}
+            <div class="error-message">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="/admin/articles/create" enctype="multipart/form-data" class="article-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="title">Title *</label>
+                    <input type="text" id="title" name="title" value="{{ title ?? '' }}" required maxlength="255">
+                </div>
+
+                <div class="form-group">
+                    <label for="category_id">Category *</label>
+                    <select id="category_id" name="category_id" required>
+                        <option value="">Select Category</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {{ category_id == category.id ? 'selected' : '' }}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="excerpt">Excerpt</label>
+                <textarea id="excerpt" name="excerpt" rows="3" maxlength="500" placeholder="Brief description of the article (max 500 characters)">{{ excerpt ?? '' }}</textarea>
+                <small>Characters remaining: <span id="excerpt-count">500</span></small>
+            </div>
+
+            <div class="form-group">
+                <label for="content">Content *</label>
+                <textarea id="content" name="content" rows="15" required placeholder="Write your article content here...">{{ content ?? '' }}</textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="featured_image">Featured Image</label>
+                    <input type="file" id="featured_image" name="featured_image" accept="image/*">
+                    <small>Supported formats: JPEG, PNG, GIF, WebP (max 10MB)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="image_alt_text">Image Alt Text</label>
+                    <input type="text" id="image_alt_text" name="image_alt_text" value="{{ image_alt_text ?? '' }}" placeholder="Describe the image for accessibility">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="status">Status</label>
+                <select id="status" name="status">
+                    <option value="draft" {{ status == 'draft' ? 'selected' : '' }}>Draft</option>
+                    <option value="published" {{ status == 'published' ? 'selected' : '' }}>Published</option>
+                </select>
+                <small>Drafts are only visible to admins and editors. Published articles are visible to all visitors.</small>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="button primary">Create Article</button>
+                <a href="/admin/articles" class="button secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Character counter for excerpt
+        const excerptTextarea = document.getElementById('excerpt');
+        const excerptCount = document.getElementById('excerpt-count');
+
+        excerptTextarea.addEventListener('input', function() {
+            const remaining = 500 - this.value.length;
+            excerptCount.textContent = remaining;
+            excerptCount.style.color = remaining < 50 ? '#dc3545' : '#666';
+        });
+
+        // Trigger initial count
+        excerptTextarea.dispatchEvent(new Event('input'));
+    </script>
+{% endblock %}

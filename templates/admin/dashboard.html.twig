@@ -1,0 +1,75 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Admin Dashboard | {{ parent() }}{% endblock %}
+
+{% block content %}
+    <div class="admin-dashboard">
+        <div class="admin-header">
+            <h1>Admin Dashboard</h1>
+            <p>Welcome back, {{ session.currentUsername }}!</p>
+        </div>
+
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <h3>Quick Actions</h3>
+                <div class="quick-actions">
+                    <a href="/admin/articles/create" class="action-button primary">
+                        <span class="icon">✏️</span>
+                        Create New Article
+                    </a>
+                    <a href="/admin/articles" class="action-button">
+                        <span class="icon">📄</span>
+                        Manage Articles
+                    </a>
+                    {% if session.currentUser and session.currentUser.isAdmin %}
+                        <a href="/admin/users" class="action-button">
+                            <span class="icon">👥</span>
+                            Manage Users
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <h3>System Overview</h3>
+                <div class="system-info">
+                    <div class="info-item">
+                        <span class="label">Your Role:</span>
+                        <span class="value role-badge role-{{ session.currentUser.role.value ?? 'user' }}">
+                            {{ session.currentUser.role.value|title ?? 'User' }}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Last Login:</span>
+                        <span class="value">{{ "now"|date("F j, Y g:i A") }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="recent-activity">
+            <h2>Recent Activity</h2>
+            <div class="activity-list">
+                <div class="activity-item">
+                    <span class="activity-icon">📝</span>
+                    <div class="activity-content">
+                        <p><strong>Article Management</strong></p>
+                        <p>You can create, edit, and manage articles from the Articles section.</p>
+                    </div>
+                    <span class="activity-time">Available</span>
+                </div>
+
+                {% if session.currentUser and session.currentUser.isAdmin %}
+                    <div class="activity-item">
+                        <span class="activity-icon">👤</span>
+                        <div class="activity-content">
+                            <p><strong>User Management</strong></p>
+                            <p>As an admin, you can view and manage all user accounts.</p>
+                        </div>
+                        <span class="activity-time">Admin Only</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

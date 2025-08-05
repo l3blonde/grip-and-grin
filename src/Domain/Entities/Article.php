@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace GripAndGrin\Domain\Entities;
 
 use DateTime;
+use GripAndGrin\Domain\ValueObjects\ArticleStatus;
 use GripAndGrin\Domain\ValueObjects\Image;
 
 class Article
@@ -13,8 +14,10 @@ class Article
         private readonly string $title,
         private readonly string $slug,
         private readonly string $content,
+        private readonly string $excerpt,
         private readonly int $authorId,
         private readonly int $categoryId,
+        private readonly ArticleStatus $status,
         private readonly ?DateTime $publishedAt,
         private readonly DateTime $createdAt,
         private readonly ?Image $featuredImage = null
@@ -40,6 +43,11 @@ class Article
         return $this->content;
     }
 
+    public function getExcerpt(): string
+    {
+        return $this->excerpt;
+    }
+
     public function getAuthorId(): int
     {
         return $this->authorId;
@@ -48,6 +56,11 @@ class Article
     public function getCategoryId(): int
     {
         return $this->categoryId;
+    }
+
+    public function getStatus(): ArticleStatus
+    {
+        return $this->status;
     }
 
     public function getPublishedAt(): ?DateTime
@@ -68,5 +81,15 @@ class Article
     public function hasFeaturedImage(): bool
     {
         return $this->featuredImage !== null;
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->status->isPublished();
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status->isDraft();
     }
 }
