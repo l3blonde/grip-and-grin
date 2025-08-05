@@ -30,8 +30,7 @@
                             </button>
                             <div class="user-dropdown-menu">
                                 <a href="/profile" class="dropdown-item">👤 Profile</a>
-                                {% set currentUser = session.currentUserId ? app.user : null %}
-                                {% if currentUser and currentUser.canManageArticles %}
+                                {% if session.canCurrentUserManageArticles %}
                                     <a href="/admin/dashboard" class="dropdown-item">⚙️ Admin Dashboard</a>
                                 {% endif %}
                                 <div class="dropdown-divider"></div>

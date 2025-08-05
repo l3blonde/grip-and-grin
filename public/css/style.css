@@ -179,12 +179,12 @@ h3 {
 }
 
 .dropdown-item.logout {
-    color: #dc3545;
+    color: #333333;
 }
 
 .dropdown-item.logout:hover {
     background-color: #f8f8f8;
-    color: #c82333;
+    color: #000000;
 }
 
 .dropdown-divider {
@@ -501,15 +501,15 @@ h3 {
 }
 
 .error-message {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    background-color: #f8f8f8;
+    color: #333333;
+    border: 1px solid #e6e6e6;
 }
 
 .success-message {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    background-color: #f8f8f8;
+    color: #000000;
+    border: 1px solid #cccccc;
 }
 
 /* Admin Styles */
@@ -629,53 +629,53 @@ h3 {
 }
 
 .role-admin {
-    background-color: #dc3545;
+    background-color: #333333;
     color: white;
 }
 
 .role-editor {
-    background-color: #007bff;
+    background-color: #666666;
     color: white;
 }
 
 .role-user {
-    background-color: #6c757d;
+    background-color: #999999;
     color: white;
 }
 
 .status-published {
-    background-color: #28a745;
+    background-color: #000000;
     color: white;
 }
 
 .status-draft {
-    background-color: #ffc107;
-    color: #212529;
+    background-color: #999999;
+    color: #000000;
 }
 
 .status-archived {
-    background-color: #6c757d;
+    background-color: #666666;
     color: white;
 }
 
 .status-active {
-    background-color: #28a745;
+    background-color: #000000;
     color: white;
 }
 
 .status-inactive {
-    background-color: #dc3545;
+    background-color: #333333;
     color: white;
 }
 
 .verified-badge {
-    color: #28a745;
+    color: #000000;
     font-weight: 600;
     font-size: 0.8rem;
 }
 
 .unverified-badge {
-    color: #ffc107;
+    color: #999999;
     font-weight: 600;
     font-size: 0.8rem;
 }
@@ -745,32 +745,32 @@ h3 {
 }
 
 .action-link.view {
-    color: #007bff;
+    color: #666666;
 }
 
 .action-link.view:hover {
-    background-color: #e3f2fd;
+    background-color: #f8f8f8;
     text-decoration: none;
 }
 
 .action-link.edit {
-    color: #28a745;
+    color: #000000;
 }
 
 .action-link.edit:hover {
-    background-color: #e8f5e8;
+    background-color: #f0f0f0;
     text-decoration: none;
 }
 
 .action-link.delete {
-    color: #dc3545;
+    color: #333333;
     background: none;
     border: none;
     cursor: pointer;
 }
 
 .action-link.delete:hover {
-    background-color: #fdeaea;
+    background-color: #f8f8f8;
     text-decoration: none;
 }
 
@@ -937,11 +937,11 @@ h3 {
 }
 
 .verified {
-    color: #28a745;
+    color: #000000;
 }
 
 .unverified {
-    color: #ffc107;
+    color: #999999;
 }
 
 /* Recent Activity */

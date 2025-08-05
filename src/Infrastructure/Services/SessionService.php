@@ -19,6 +19,9 @@ class SessionService
         $_SESSION['user_id'] = $user->getId();
         $_SESSION['username'] = $user->getUsername();
         $_SESSION['email'] = $user->getEmail();
+        $_SESSION['role'] = $user->getRole()->getValue();
+        $_SESSION['is_admin'] = $user->isAdmin();
+        $_SESSION['can_manage_articles'] = $user->canManageArticles();
         $_SESSION['logged_in'] = true;
 
         // Regenerate session ID for security
@@ -53,6 +56,21 @@ class SessionService
     public function getCurrentUserEmail(): ?string
     {
         return $_SESSION['email'] ?? null;
+    }
+
+    public function getCurrentUserRole(): ?string
+    {
+        return $_SESSION['role'] ?? null;
+    }
+
+    public function isCurrentUserAdmin(): bool
+    {
+        return $_SESSION['is_admin'] ?? false;
+    }
+
+    public function canCurrentUserManageArticles(): bool
+    {
+        return $_SESSION['can_manage_articles'] ?? false;
     }
 
     public function generateCsrfToken(): string
