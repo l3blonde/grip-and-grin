@@ -5,25 +5,47 @@ declare(strict_types=1);
 // Access this at: https://your-domain.com/migrate-railway.php
 // DELETE THIS FILE AFTER RUNNING!
 
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use App\Infrastructure\Database\DatabaseConnection;
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-echo "<h1>Railway Database Migration</h1>";
-echo "<p>Starting migration process...</p>";
+echo '<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Railway Database Migration</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .success { color: green; background: #e8f5e8; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .error { color: red; background: #ffe8e8; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .info { color: blue; background: #e8f0ff; padding: 10px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>';
+
+echo "<h1>🚂 Railway Database Migration</h1>";
+echo "<div class='info'>Starting migration process...</div>";
 
 try {
     // Get Railway environment variables
-    $databaseUrl = $_ENV['DATABASE_URL'] ?? null;
+    $databaseUrl = getenv('DATABASE_URL') ?: $_ENV['DATABASE_URL'] ?? null;
 
     if (!$databaseUrl) {
-        // Fallback to individual variables
-        $host = $_ENV['MYSQL_HOST'] ?? 'localhost';
-        $port = $_ENV['MYSQL_PORT'] ?? '3306';
-        $database = $_ENV['MYSQL_DATABASE'] ?? 'railway';
-        $username = $_ENV['MYSQL_USER'] ?? 'root';
-        $password = $_ENV['MYSQL_PASSWORD'] ?? '';
+        // Try individual variables
+        $host = getenv('MYSQL_HOST') ?: $_ENV['MYSQL_HOST'] ?? 'localhost';
+        $port = getenv('MYSQL_PORT') ?: $_ENV['MYSQL_PORT'] ?? '3306';
+        $database = getenv('MYSQL_DATABASE') ?: $_ENV['MYSQL_DATABASE'] ?? 'railway';
+        $username = getenv('MYSQL_USER') ?: $_ENV['MYSQL_USER'] ?? 'root';
+        $password = getenv('MYSQL_PASSWORD') ?: $_ENV['MYSQL_PASSWORD'] ?? '';
 
         $dsn = "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4";
+
+        echo "<div class='info'>Using individual environment variables</div>";
+        echo "<div class='info'>Host: {$host}:{$port}, Database: {$database}</div>";
     } else {
         // Parse DATABASE_URL (format: mysql://user:pass@host:port/db)
         $parsed = parse_url($databaseUrl);
@@ -34,16 +56,17 @@ try {
         $password = $parsed['pass'];
 
         $dsn = "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4";
-    }
 
-    echo "<p>Connecting to database: {$host}:{$port}/{$database}</p>";
+        echo "<div class='info'>Using DATABASE_URL</div>";
+        echo "<div class='info'>Host: {$host}:{$port}, Database: {$database}</div>";
+    }
 
     $pdo = new PDO($dsn, $username, $password, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
 
-    echo "<p>✅ Database connection successful!</p>";
+    echo "<div class='success'>✅ Database connection successful!</div>";
 
     // Create tables
     $sql = "
@@ -89,7 +112,7 @@ try {
     ";
 
     $pdo->exec($sql);
-    echo "<p>✅ Tables created successfully!</p>";
+    echo "<div class='success'>✅ Tables created successfully!</div>";
 
     // Insert sample categories
     $categories = [
@@ -104,13 +127,13 @@ try {
     foreach ($categories as $category) {
         $stmt->execute([$category['name'], $category['slug'], $category['description']]);
     }
-    echo "<p>✅ Sample categories inserted!</p>";
+    echo "<div class='success'>✅ Sample categories inserted!</div>";
 
     // Create admin user
     $adminPassword = password_hash('admin123', PASSWORD_DEFAULT);
     $stmt = $pdo->prepare("INSERT IGNORE INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)");
     $stmt->execute(['admin', 'admin@gripandgrin.org', $adminPassword, 'admin']);
-    echo "<p>✅ Admin user created! (username: admin, password: admin123)</p>";
+    echo "<div class='success'>✅ Admin user created! (username: admin, password: admin123)</div>";
 
     // Insert sample articles
     $sampleArticles = [
@@ -156,14 +179,17 @@ try {
             $article['published_at']
         ]);
     }
-    echo "<p>✅ Sample articles inserted!</p>";
+    echo "<div class='success'>✅ Sample articles inserted!</div>";
 
     echo "<h2>🎉 Migration Complete!</h2>";
-    echo "<p><strong>IMPORTANT:</strong> Delete this file (migrate-railway.php) for security!</p>";
+    echo "<div class='error'><strong>IMPORTANT:</strong> Delete this file (migrate-railway.php) for security!</div>";
     echo "<p><a href='/'>Go to Homepage</a></p>";
 
 } catch (Exception $e) {
-    echo "<p>❌ Error: " . htmlspecialchars($e->getMessage()) . "</p>";
+    echo "<div class='error'>❌ Error: " . htmlspecialchars($e->getMessage()) . "</div>";
+    echo "<div class='error'>Stack trace:</div>";
     echo "<pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
 }
+
+echo '</body></html>';
 ?>
