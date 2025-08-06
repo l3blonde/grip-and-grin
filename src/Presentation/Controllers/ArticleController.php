@@ -16,13 +16,18 @@ class ArticleController
 
     public function show(string $slug): Response
     {
-        $article = $this->getArticleBySlugUseCase->execute($slug);
+        $result = $this->getArticleBySlugUseCase->execute($slug);
 
-        if (!$article) {
+        if (!$result['article']) {
             return new Response($this->twig->render('404.html.twig'), Response::HTTP_NOT_FOUND);
         }
 
-        $content = $this->twig->render('article-detail.html.twig', ['article' => $article]);
+        $content = $this->twig->render('article-detail.html.twig', [
+            'article' => $result['article'],
+            'nextArticle' => $result['nextArticle'],
+            'previousArticle' => $result['previousArticle']
+        ]);
+
         return new Response($content);
     }
 }

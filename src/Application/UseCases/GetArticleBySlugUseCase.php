@@ -12,8 +12,25 @@ class GetArticleBySlugUseCase
     {
     }
 
-    public function execute(string $slug): ?Article
+    public function execute(string $slug): array
     {
-        return $this->articleRepository->findBySlug($slug);
+        $article = $this->articleRepository->findBySlug($slug);
+
+        if (!$article) {
+            return [
+                'article' => null,
+                'nextArticle' => null,
+                'previousArticle' => null
+            ];
+        }
+
+        $nextArticle = $this->articleRepository->findNextArticle($article);
+        $previousArticle = $this->articleRepository->findPreviousArticle($article);
+
+        return [
+            'article' => $article,
+            'nextArticle' => $nextArticle,
+            'previousArticle' => $previousArticle
+        ];
     }
 }

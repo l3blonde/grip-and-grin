@@ -23,6 +23,7 @@ use GripAndGrin\Infrastructure\Repositories\PDOCategoryRepository;
 use GripAndGrin\Infrastructure\Repositories\PDOUserRepository;
 use GripAndGrin\Infrastructure\Services\ImageService;
 use GripAndGrin\Infrastructure\Services\SessionService;
+use GripAndGrin\Infrastructure\Twig\SvgIconExtension;
 use GripAndGrin\Presentation\Controllers\AdminController;
 use GripAndGrin\Presentation\Controllers\ArticleController;
 use GripAndGrin\Presentation\Controllers\AuthController;
@@ -50,10 +51,13 @@ $container[SessionService::class] = new SessionService();
 // Services
 $container[ImageService::class] = new ImageService();
 
-// Twig with session globals
+// Twig with session globals and inline SVG icon extension
 $loader = new FilesystemLoader(__DIR__ . '/../templates');
 $container['twig'] = new Environment($loader);
 $container['twig']->addGlobal('session', $container[SessionService::class]);
+
+// Add inline SVG Icon Extension (no path needed)
+$container['twig']->addExtension(new SvgIconExtension());
 
 // Repositories
 $container[PDOArticleRepository::class] = new PDOArticleRepository($container[DatabaseConnection::class]);
@@ -151,7 +155,7 @@ if ($path === '/' || $path === '') {
 } elseif ($path === '/admin/dashboard') {
     $response = $container[AdminController::class]->dashboard();
 } elseif ($path === '/admin/articles') {
-    $response = $container[AdminController::class]->articles($request);
+    $response = $container[SearchController::class]->articles($request);
 } elseif ($path === '/admin/articles/create') {
     if ($request->getMethod() === 'POST') {
         $response = $container[AdminController::class]->createArticle($request);

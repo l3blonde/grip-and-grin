@@ -4,91 +4,360 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Grip & Grin{% endblock %}</title>
+
+    <!-- Preconnect to external domains -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="//images.unsplash.com">
+
+    <!-- Load CSS in correct order - Base styles first, then components, then layout -->
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/breakpoints.css">
+    <link rel="stylesheet" href="/css/grid-system.css">
+    <link rel="stylesheet" href="/css/performance.css">
+    <link rel="stylesheet" href="/css/admin.css">
+
+    <!-- Load fonts with font-display: swap -->
     <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css">
+
     <link rel="icon" href="/logo.svg" type="image/svg+xml">
 </head>
 <body>
 <div class="container">
+    <!-- Main Header - Logo, Search, User -->
     <header class="site-header">
         <div class="header-content">
+            <!-- Logo -->
             <a href="/" class="logo">
-                <img src="/logo.svg" alt="Grip & Grin Logo" class="logo-svg">
+                <img src="/logo.svg" alt="Grip & Grin Logo" class="logo-svg" loading="eager">
                 <span class="logo-text">Grip &amp; Grin</span>
             </a>
 
-            <nav class="main-nav">
-                <a href="/" class="nav-link">News</a>
+            <!-- Search Form -->
+            <form class="search-form" action="/search" method="GET" role="search">
+                <input type="text"
+                       name="q"
+                       placeholder="Search articles..."
+                       class="search-input"
+                       value="{{ app.request.query.get('q') }}"
+                       aria-label="Search articles">
+                <button type="submit" class="search-button" aria-label="Search">
+                    {{ icon('search', 'icon small') }}
+                </button>
+            </form>
+
+            <!-- Desktop User Navigation -->
+            <div class="desktop-user-nav">
                 {% if session.isLoggedIn %}
-                    <div class="user-nav">
-                        <div class="user-dropdown">
-                            <button class="user-dropdown-toggle">
-                                <span class="user-welcome">{{ session.currentUsername }}</span>
-                                <span class="dropdown-arrow">▼</span>
-                            </button>
-                            <div class="user-dropdown-menu">
-                                <a href="/profile" class="dropdown-item">👤 Profile</a>
-                                {% if session.canCurrentUserManageArticles %}
-                                    <a href="/admin/dashboard" class="dropdown-item">⚙️ Admin Dashboard</a>
-                                {% endif %}
-                                <div class="dropdown-divider"></div>
-                                <a href="/logout" class="dropdown-item logout">🚪 Logout</a>
+                    <div class="user-dropdown">
+                        <button class="user-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
+                            <div class="user-avatar">
+                                {{ icon('user', 'icon small') }}
                             </div>
+                            <span class="user-welcome">{{ session.currentUsername }}</span>
+                            <div class="dropdown-arrow">
+                                {{ icon('chevron-down', 'icon small') }}
+                            </div>
+                        </button>
+                        <div class="user-dropdown-menu" role="menu">
+                            <a href="/profile" class="dropdown-item" role="menuitem">
+                                {{ icon('user', 'icon small') }}
+                                Profile
+                            </a>
+                            {% if session.canCurrentUserManageArticles %}
+                                <a href="/admin/dashboard" class="dropdown-item" role="menuitem">
+                                    {{ icon('admin', 'icon small') }}
+                                    Admin Dashboard
+                                </a>
+                            {% endif %}
+                            <div class="dropdown-divider"></div>
+                            <a href="/logout" class="dropdown-item logout" role="menuitem">
+                                {{ icon('logout', 'icon small') }}
+                                Logout
+                            </a>
                         </div>
                     </div>
                 {% else %}
-                    <a href="/login" class="nav-link">Login</a>
-                    <a href="/register" class="nav-link">Register</a>
+                    <div class="auth-links">
+                        <a href="/login" class="auth-button login">
+                            {{ icon('login', 'icon small') }}
+                            Login
+                        </a>
+                        <a href="/register" class="auth-button register">
+                            {{ icon('register', 'icon small') }}
+                            Register
+                        </a>
+                    </div>
                 {% endif %}
-            </nav>
+            </div>
 
-            <form class="search-form" action="/search" method="GET">
-                <input type="text" name="q" placeholder="Search articles..." class="search-input" value="{{ app.request.query.get('q') }}">
-                <button type="submit" class="search-button">Search</button>
-            </form>
+            <!-- Mobile Hamburger Menu -->
+            <button class="hamburger mobile-only" aria-expanded="false" aria-controls="mobile-menu" aria-label="Toggle navigation menu">
+                    <span class="hamburger-icon">
+                        {{ icon('menu', 'icon') }}
+                    </span>
+            </button>
         </div>
 
-        <!-- Category Navigation -->
-        <nav class="category-nav">
-            <a href="/" class="category-link">All</a>
-            <a href="/category/classics" class="category-link">Classics</a>
-            <a href="/category/collector" class="category-link">Collector</a>
-            <a href="/category/reviews" class="category-link">Reviews</a>
-            <a href="/category/trends" class="category-link">Trends</a>
-        </nav>
+        <!-- Mobile Navigation Menu (hidden by default) -->
+        <div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Mobile navigation">
+            <div class="mobile-menu-content">
+                <!-- Mobile Categories -->
+                <div class="mobile-section">
+                    <h3 class="mobile-section-title">Categories</h3>
+                    <div class="mobile-category-grid">
+                        <a href="/" class="mobile-category-item active">
+                            {{ icon('home', 'icon small') }}
+                            All Articles
+                        </a>
+                        <a href="/category/classics" class="mobile-category-item">
+                            {{ icon('star', 'icon small') }}
+                            Classics
+                        </a>
+                        <a href="/category/collector" class="mobile-category-item">
+                            {{ icon('heart', 'icon small') }}
+                            Collector
+                        </a>
+                        <a href="/category/reviews" class="mobile-category-item">
+                            {{ icon('eye', 'icon small') }}
+                            Reviews
+                        </a>
+                        <a href="/category/trends" class="mobile-category-item">
+                            {{ icon('arrow-right', 'icon small') }}
+                            Trends
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Mobile User Menu -->
+                <div class="mobile-section">
+                    {% if session.isLoggedIn %}
+                        <h3 class="mobile-section-title">Account</h3>
+                        <div class="mobile-user-info">
+                            <div class="mobile-user-avatar">
+                                {{ icon('user', 'icon') }}
+                            </div>
+                            <span class="mobile-username">{{ session.currentUsername }}</span>
+                        </div>
+                        <div class="mobile-menu-links">
+                            <a href="/profile" class="mobile-menu-link">
+                                {{ icon('user', 'icon small') }}
+                                Profile
+                            </a>
+                            {% if session.canCurrentUserManageArticles %}
+                                <a href="/admin/dashboard" class="mobile-menu-link">
+                                    {{ icon('admin', 'icon small') }}
+                                    Admin Dashboard
+                                </a>
+                            {% endif %}
+                            <a href="/logout" class="mobile-menu-link logout">
+                                {{ icon('logout', 'icon small') }}
+                                Logout
+                            </a>
+                        </div>
+                    {% else %}
+                        <h3 class="mobile-section-title">Account</h3>
+                        <div class="mobile-auth-buttons">
+                            <a href="/login" class="mobile-auth-button login">
+                                {{ icon('login', 'icon small') }}
+                                Login
+                            </a>
+                            <a href="/register" class="mobile-auth-button register">
+                                {{ icon('register', 'icon small') }}
+                                Register
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </header>
 
-    <main>
+    <!-- Subheader - Categories Navigation (Desktop Only) -->
+    <nav class="subheader" role="navigation" aria-label="Categories">
+        <div class="subheader-content">
+            <div class="category-navigation">
+                <a href="/" class="category-pill active">
+                    {{ icon('home', 'icon small') }}
+                    All Articles
+                </a>
+                <a href="/category/classics" class="category-pill">
+                    {{ icon('star', 'icon small') }}
+                    Classics
+                </a>
+                <a href="/category/collector" class="category-pill">
+                    {{ icon('heart', 'icon small') }}
+                    Collector
+                </a>
+                <a href="/category/reviews" class="category-pill">
+                    {{ icon('eye', 'icon small') }}
+                    Reviews
+                </a>
+                <a href="/category/trends" class="category-pill">
+                    {{ icon('arrow-right', 'icon small') }}
+                    Trends
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main role="main">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="site-footer">
+    <footer class="site-footer" role="contentinfo">
         <p>&copy; {{ "now"|date("Y") }} Grip & Grin. All rights reserved.</p>
     </footer>
 </div>
 
+<!-- JavaScript for progressive enhancement -->
 <script>
-    // User dropdown functionality
+    // Mobile hamburger menu functionality
     document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, initializing menu functionality');
+
+        const hamburger = document.querySelector('.hamburger');
+        const mobileMenu = document.querySelector('.mobile-menu');
+        const hamburgerIcon = hamburger ? hamburger.querySelector('.hamburger-icon') : null;
+
+        console.log('Hamburger element:', hamburger);
+        console.log('Mobile menu element:', mobileMenu);
+        console.log('Hamburger icon element:', hamburgerIcon);
+
+        if (hamburger && mobileMenu && hamburgerIcon) {
+            hamburger.addEventListener('click', function() {
+                console.log('Hamburger clicked');
+
+                const isOpen = mobileMenu.classList.toggle('active');
+                console.log('Menu toggled, isOpen:', isOpen);
+
+                hamburger.setAttribute('aria-expanded', isOpen);
+                hamburger.classList.toggle('active');
+                document.body.classList.toggle('menu-open', isOpen);
+
+                // Change icon
+                if (isOpen) {
+                    hamburgerIcon.innerHTML = '{{ icon('x', 'icon')|raw }}';
+                    console.log('Changed to close icon');
+                } else {
+                    hamburgerIcon.innerHTML = '{{ icon('menu', 'icon')|raw }}';
+                    console.log('Changed to menu icon');
+                }
+            });
+
+            // Close menu when clicking on a link
+            const mobileLinks = mobileMenu.querySelectorAll('.mobile-category-item, .mobile-menu-link, .mobile-auth-button');
+            console.log('Found mobile links:', mobileLinks.length);
+
+            mobileLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    console.log('Mobile link clicked, closing menu');
+                    mobileMenu.classList.remove('active');
+                    hamburger.setAttribute('aria-expanded', 'false');
+                    hamburger.classList.remove('active');
+                    document.body.classList.remove('menu-open');
+                    hamburgerIcon.innerHTML = '{{ icon('menu', 'icon')|raw }}';
+                });
+            });
+
+            // Close menu on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
+                    console.log('Escape key pressed, closing menu');
+                    mobileMenu.classList.remove('active');
+                    hamburger.setAttribute('aria-expanded', 'false');
+                    hamburger.classList.remove('active');
+                    document.body.classList.remove('menu-open');
+                    hamburgerIcon.innerHTML = '{{ icon('menu', 'icon')|raw }}';
+                    hamburger.focus();
+                }
+            });
+        } else {
+            console.error('Menu elements not found:', {
+                hamburger: !!hamburger,
+                mobileMenu: !!mobileMenu,
+                hamburgerIcon: !!hamburgerIcon
+            });
+        }
+
+        // Desktop user dropdown functionality
         const dropdown = document.querySelector('.user-dropdown');
         if (dropdown) {
+            console.log('User dropdown found, initializing');
             const toggle = dropdown.querySelector('.user-dropdown-toggle');
             const menu = dropdown.querySelector('.user-dropdown-menu');
 
             toggle.addEventListener('click', function(e) {
                 e.preventDefault();
-                dropdown.classList.toggle('active');
+                const isActive = dropdown.classList.toggle('active');
+                toggle.setAttribute('aria-expanded', isActive);
+                console.log('User dropdown toggled:', isActive);
             });
 
             // Close dropdown when clicking outside
             document.addEventListener('click', function(e) {
                 if (!dropdown.contains(e.target)) {
                     dropdown.classList.remove('active');
+                    toggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            // Close dropdown on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && dropdown.classList.contains('active')) {
+                    dropdown.classList.remove('active');
+                    toggle.setAttribute('aria-expanded', 'false');
+                    toggle.focus();
                 }
             });
         }
+    });
+
+    // Lazy loading for images
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.dataset.src;
+                    img.classList.remove('lazy-image');
+                    img.classList.add('image-loading');
+
+                    img.onload = () => {
+                        img.classList.remove('image-loading');
+                        img.classList.add('image-loaded');
+                    };
+
+                    img.onerror = () => {
+                        img.classList.remove('image-loading');
+                        img.classList.add('image-error');
+                        img.alt = 'Image failed to load';
+                    };
+
+                    observer.unobserve(img);
+                }
+            });
+        });
+
+        // Observe all lazy images
+        document.querySelectorAll('img[data-src]').forEach(img => {
+            imageObserver.observe(img);
+        });
+    }
+
+    // Progressive enhancement for animations
+    const animationObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('in-view');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.observe-lazy').forEach(el => {
+        animationObserver.observe(el);
     });
 </script>
 </body>

@@ -25,4 +25,21 @@
             {{ article.content|nl2br }}
         </div>
     </article>
+
+    <!-- Article Navigation -->
+    {% if previousArticle or nextArticle %}
+        <nav class="article-navigation" role="navigation" aria-label="Article navigation">
+            {% if previousArticle %}
+                <a href="/article/{{ previousArticle.slug }}" class="nav-button nav-button-prev">
+                    ← Previous
+                </a>
+            {% endif %}
+
+            {% if nextArticle %}
+                <a href="/article/{{ nextArticle.slug }}" class="nav-button nav-button-next">
+                    Next →
+                </a>
+            {% endif %}
+        </nav>
+    {% endif %}
 {% endblock %}

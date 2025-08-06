@@ -1,0 +1,420 @@
+/* =====================================================
+   BREAKPOINTS - Responsive Modifications Only
+   ===================================================== */
+
+/* ===========================================
+   LARGE MOBILE / SMALL TABLET (481px+)
+   =========================================== */
+@media (min-width: 481px) {
+    .container {
+        padding: 1.5rem;
+    }
+
+    .logo-svg {
+        width: 52px;
+        height: 52px;
+    }
+
+    .logo-text {
+        font-size: 1.6rem;
+    }
+
+    .mobile-category-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .article-thumbnail {
+        height: 220px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .form-actions {
+        flex-direction: row;
+        justify-content: flex-start;
+    }
+
+    .header-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+}
+
+/* ===========================================
+   TABLET (768px+) - Still Mobile Layout
+   =========================================== */
+@media (min-width: 768px) {
+    .container {
+        max-width: 750px;
+        padding: 2rem;
+    }
+
+    .container.wide {
+        max-width: 100%;
+    }
+
+    .logo-svg {
+        width: 56px;
+        height: 56px;
+    }
+
+    .logo-text {
+        font-size: 1.75rem;
+    }
+
+    .header-content {
+        padding: 0 2rem;
+        gap: 2rem;
+    }
+
+    /* Keep mobile layout - hamburger still visible */
+    .mobile-category-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .article-thumbnail {
+        height: 220px;
+    }
+
+    /* Tablet Article Layout */
+    .article-summary {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .article-image {
+        width: 280px;
+        flex-shrink: 0;
+        order: 0;
+    }
+
+    .article-thumbnail {
+        height: 180px;
+    }
+
+    .article-content {
+        flex: 1;
+    }
+
+    /* Tablet Grid */
+    .grid.cols-2 {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    /* Tablet Admin */
+    .admin-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-actions {
+        width: auto;
+        flex-direction: row;
+    }
+
+    .dashboard-stats {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* ===========================================
+   DESKTOP (1024px+) - Desktop Layout Starts
+   =========================================== */
+@media (min-width: 1024px) {
+    .container {
+        max-width: 1170px;
+    }
+
+    .container.wide {
+        max-width: 1400px;
+    }
+
+    .logo-svg {
+        width: 64px;
+        height: 64px;
+    }
+
+    .logo-text {
+        font-size: 2rem;
+    }
+
+    /* Show desktop elements, hide mobile */
+    .desktop-user-nav,
+    .subheader,
+    .search-form,
+    .desktop-only {
+        display: flex;
+    }
+
+    .mobile-only,
+    .hamburger,
+    .mobile-menu {
+        display: none !important;
+    }
+
+    .header-content {
+        gap: 2.5rem;
+    }
+
+    .search-form {
+        min-width: 400px;
+    }
+
+    /* Desktop Article Layout */
+    .article-image {
+        width: 320px;
+    }
+
+    .article-thumbnail {
+        height: 220px;
+    }
+
+    /* Four Column Grid */
+    .grid.cols-4 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    /* Three Column Grid */
+    .grid.cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    /* Desktop Typography */
+    h1 {
+        font-size: 2.5rem;
+    }
+
+    .article-full .article-title-full {
+        font-size: 2.8rem;
+    }
+
+    .article-summary .article-title {
+        font-size: 2rem;
+    }
+
+    /* Profile Layout */
+    .profile-content {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 3rem;
+    }
+}
+
+/* ===========================================
+   LARGE DESKTOP (1440px+)
+   =========================================== */
+@media (min-width: 1440px) {
+    .container {
+        max-width: 1400px;
+    }
+
+    .container.wide {
+        max-width: 1600px;
+    }
+
+    .logo-svg {
+        width: 68px;
+        height: 68px;
+    }
+
+    .logo-text {
+        font-size: 2.1rem;
+    }
+
+    .header-content {
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    /* Large Desktop Typography */
+    h1 {
+        font-size: 3rem;
+    }
+
+    .article-full .article-title-full {
+        font-size: 3.2rem;
+    }
+
+    /* Enhanced spacing */
+    .article-summary {
+        gap: 2rem;
+    }
+
+    .article-image {
+        width: 350px;
+    }
+
+    .article-thumbnail {
+        height: 240px;
+    }
+}
+
+/* ===========================================
+   MOBILE RESPONSIVE OVERRIDES
+   =========================================== */
+@media (max-width: 1023px) {
+    .article-navigation {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    .nav-button {
+        width: 100%;
+        justify-content: center;
+        margin: 0 !important;
+    }
+
+    .pagination {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        text-align: center;
+    }
+
+    .pagination-previous,
+    .pagination-next {
+        order: 1;
+    }
+
+    .pagination-info {
+        order: 0;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .pagination-link {
+        width: 100%;
+        max-width: 200px;
+        margin: 0 auto;
+    }
+}
+
+/* ===========================================
+   TOUCH DEVICE OPTIMIZATIONS
+   =========================================== */
+@media (hover: none) and (pointer: coarse) {
+    .nav-link,
+    .button,
+    .action-link,
+    .mobile-menu-link,
+    .mobile-category-item,
+    .mobile-auth-button {
+        min-height: 48px;
+        padding: 0.875rem 1rem;
+    }
+
+    .article-thumbnail:hover,
+    .button:hover,
+    .category-pill:hover,
+    .auth-button:hover,
+    .mobile-category-item:hover {
+        transform: none;
+    }
+}
+
+/* ===========================================
+   HIGH DPI / RETINA DISPLAYS
+   =========================================== */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .logo-svg {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+}
+
+/* ===========================================
+   LANDSCAPE ORIENTATION
+   =========================================== */
+@media (orientation: landscape) and (max-height: 500px) {
+    .site-header {
+        padding: 0.75rem 0;
+    }
+
+    .header-content {
+        gap: 0.75rem;
+    }
+
+    .logo-svg {
+        width: 40px;
+        height: 40px;
+    }
+
+    .logo-text {
+        font-size: 1.3rem;
+    }
+}
+
+/* ===========================================
+   PRINT STYLES
+   =========================================== */
+@media print {
+    .site-header,
+    .site-footer,
+    .search-form,
+    .desktop-user-nav,
+    .desktop-categories,
+    .hamburger,
+    .mobile-menu,
+    .pagination,
+    .admin-header,
+    .form-actions,
+    .actions {
+        display: none !important;
+    }
+
+    .container {
+        max-width: none;
+        padding: 0;
+    }
+
+    .article-full .article-content {
+        font-size: 12pt;
+        line-height: 1.5;
+    }
+
+    .article-thumbnail {
+        max-width: 200px;
+        height: auto;
+    }
+}
+
+/* ===========================================
+   REDUCED MOTION
+   =========================================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .logo-svg,
+    .logo-text,
+    .hamburger-line {
+        transition: none;
+    }
+}
+
+/* ===========================================
+   HIGH CONTRAST MODE
+   =========================================== */
+@media (prefers-contrast: high) {
+    .button,
+    .nav-link,
+    .action-link,
+    .category-pill,
+    .auth-button,
+    .mobile-menu-link,
+    .mobile-category-item,
+    .mobile-auth-button {
+        border: 2px solid currentColor;
+    }
+
+    .article-thumbnail {
+        border: 1px solid currentColor;
+    }
+}

@@ -14,16 +14,16 @@
                 <h3>Quick Actions</h3>
                 <div class="quick-actions">
                     <a href="/admin/articles/create" class="action-button primary">
-                        <span class="icon">✏️</span>
+                        <span>➕</span>
                         Create New Article
                     </a>
                     <a href="/admin/articles" class="action-button">
-                        <span class="icon">📄</span>
+                        <span>📄</span>
                         Manage Articles
                     </a>
                     {% if session.isCurrentUserAdmin %}
                         <a href="/admin/users" class="action-button">
-                            <span class="icon">👥</span>
+                            <span>👥</span>
                             Manage Users
                         </a>
                     {% endif %}
@@ -51,7 +51,7 @@
             <h2>Recent Activity</h2>
             <div class="activity-list">
                 <div class="activity-item">
-                    <span class="activity-icon">📝</span>
+                    <span class="activity-icon">✏️</span>
                     <div class="activity-content">
                         <p><strong>Article Management</strong></p>
                         <p>You can create, edit, and manage articles from the Articles section.</p>
@@ -61,7 +61,7 @@
 
                 {% if session.isCurrentUserAdmin %}
                     <div class="activity-item">
-                        <span class="activity-icon">👤</span>
+                        <span class="activity-icon">👥</span>
                         <div class="activity-content">
                             <p><strong>User Management</strong></p>
                             <p>As an admin, you can view and manage all user accounts.</p>

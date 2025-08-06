@@ -47,6 +47,40 @@ class PDOArticleRepository implements ArticleRepositoryInterface
         return $row ? $this->mapRowToArticle($row) : null;
     }
 
+    public function findNextArticle(Article $currentArticle): ?Article
+    {
+        $stmt = $this->db->prepare("
+            SELECT * FROM articles 
+            WHERE status = 'published' 
+            AND published_at IS NOT NULL 
+            AND published_at <= NOW()
+            AND published_at > :current_published_at
+            ORDER BY published_at ASC
+            LIMIT 1
+        ");
+        $stmt->execute(['current_published_at' => $currentArticle->getPublishedAt()->format('Y-m-d H:i:s')]);
+        $row = $stmt->fetch();
+
+        return $row ? $this->mapRowToArticle($row) : null;
+    }
+
+    public function findPreviousArticle(Article $currentArticle): ?Article
+    {
+        $stmt = $this->db->prepare("
+            SELECT * FROM articles 
+            WHERE status = 'published' 
+            AND published_at IS NOT NULL 
+            AND published_at <= NOW()
+            AND published_at < :current_published_at
+            ORDER BY published_at DESC
+            LIMIT 1
+        ");
+        $stmt->execute(['current_published_at' => $currentArticle->getPublishedAt()->format('Y-m-d H:i:s')]);
+        $row = $stmt->fetch();
+
+        return $row ? $this->mapRowToArticle($row) : null;
+    }
+
     public function findById(int $id): ?Article
     {
         $stmt = $this->db->prepare("SELECT * FROM articles WHERE id = :id");
