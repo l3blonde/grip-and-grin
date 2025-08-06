@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace GripAndGrin\Infrastructure\Database;
@@ -8,23 +9,39 @@ use PDOException;
 
 class DatabaseConnection
 {
-    private ?PDO $pdo = null;
+    private PDO $connection;
 
-    public function __construct(
-        private readonly string $dsn,
-        private readonly string $username,
-        private readonly string $password
-    ) {}
+    public function __construct(string $dsn, string $username, string $password)
+    {
+        try {
+            $this->connection = new PDO($dsn, $username, $password, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
+            ]);
+        } catch (PDOException $e) {
+            throw new PDOException("Database connection failed: " . $e->getMessage(), (int)$e->getCode(), $e);
+        }
+    }
 
     public static function fromUrl(string $databaseUrl): self
     {
         $url = parse_url($databaseUrl);
 
-        $host = $url['host'];
+        if (!$url) {
+            throw new \InvalidArgumentException('Invalid database URL format');
+        }
+
+        $host = $url['host'] ?? 'localhost';
         $port = $url['port'] ?? 3306;
-        $database = ltrim($url['path'], '/');
-        $username = $url['user'];
-        $password = $url['pass'];
+        $database = ltrim($url['path'] ?? '', '/');
+        $username = $url['user'] ?? '';
+        $password = $url['pass'] ?? '';
+
+        if (empty($database)) {
+            throw new \InvalidArgumentException('Database name is required in URL');
+        }
 
         $dsn = "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4";
 
@@ -33,17 +50,26 @@ class DatabaseConnection
 
     public function getConnection(): PDO
     {
-        if ($this->pdo === null) {
-            try {
-                $this->pdo = new PDO($this->dsn, $this->username, $this->password, [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_TIMEOUT => 5
-                ]);
-            } catch (PDOException $e) {
-                throw new PDOException("Database connection failed: " . $e->getMessage());
-            }
-        }
-        return $this->pdo;
+        return $this->connection;
+    }
+
+    public function beginTransaction(): bool
+    {
+        return $this->connection->beginTransaction();
+    }
+
+    public function commit(): bool
+    {
+        return $this->connection->commit();
+    }
+
+    public function rollback(): bool
+    {
+        return $this->connection->rollback();
+    }
+
+    public function lastInsertId(): string
+    {
+        return $this->connection->lastInsertId();
     }
 }

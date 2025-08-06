@@ -1,6 +1,10 @@
 RewriteEngine On
 
-# Handle Angular and other front-end framework routes
+# Handle Angular and other front-end router, API requests
+RewriteCond %{REQUEST_URI} ^/(api|health|migrate-railway)
+RewriteRule ^(.*)$ $1.php [QSA,L]
+
+# Handle front-end routes
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]
@@ -10,6 +14,7 @@ RewriteRule ^(.*)$ index.php [QSA,L]
     Header always set X-Content-Type-Options nosniff
     Header always set X-Frame-Options DENY
     Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
 # Compression

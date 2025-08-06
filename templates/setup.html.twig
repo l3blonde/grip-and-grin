@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .setup-container {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .status-card.success {
+            border-left-color: #27ae60;
+        }
+
+        .status-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .instructions {
+            background: #ecf0f1;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            text-align: left;
+        }
+
+        .instructions h3 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+
+        .instructions ol {
+            margin-left: 1.5rem;
+        }
+
+        .instructions li {
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
+
+        .code {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 1rem 0.5rem;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #2980b9;
+        }
+
+        .btn.secondary {
+            background: #95a5a6;
+        }
+
+        .btn.secondary:hover {
+            background: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+<div class="setup-container">
+    <div class="logo">🎣</div>
+    <h1>Grip & Grin</h1>
+    <p class="subtitle">Database Setup Required</p>
+
+    <div class="status-card">
+        <div class="status-title">Database Status</div>
+        <div>❌ Database connection not available</div>
+    </div>
+
+    <div class="instructions">
+        <h3>🚀 Railway Deployment Setup</h3>
+        <ol>
+            <li>Add a <span class="code">MySQL</span> service to your Railway project</li>
+            <li>Railway will automatically set the <span class="code">DATABASE_URL</span> environment variable</li>
+            <li>Visit <span class="code">/migrate-railway.php</span> to set up your database</li>
+            <li>Refresh this page to access your blog</li>
+        </ol>
+    </div>
+
+    <div class="instructions">
+        <h3>🐳 Local Docker Setup</h3>
+        <ol>
+            <li>Make sure your MySQL container is running</li>
+            <li>Set these environment variables:
+                <ul style="margin-top: 0.5rem;">
+                    <li><span class="code">DB_HOST=mysql</span></li>
+                    <li><span class="code">DB_NAME=grip_and_grin</span></li>
+                    <li><span class="code">DB_USER=user</span></li>
+                    <li><span class="code">DB_PASSWORD=password</span></li>
+                </ul>
+            </li>
+            <li>Run <span class="code">docker-compose up</span></li>
+        </ol>
+    </div>
+
+    <div style="margin-top: 2rem;">
+        <a href="/health.php" class="btn secondary">Check Health Status</a>
+        <a href="/migrate-railway.php" class="btn">Run Database Migration</a>
+    </div>
+
+    <div style="margin-top: 2rem; color: #7f8c8d; font-size: 0.9rem;">
+        <p>Environment Status:</p>
+        <p>DATABASE_URL: {{ database_url_set ? '✅ Set' : '❌ Not Set' }}</p>
+        <p>Individual DB vars: {{ individual_vars_set ? '✅ Set' : '❌ Not Set' }}</p>
+    </div>
+</div>
+</body>
+</html>

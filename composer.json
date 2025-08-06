@@ -1,9 +1,9 @@
 {
-  "name": "v0/grip-and-grin",
-  "description": "A classic car news website built with PHP and Clean Architecture.",
+  "name": "grip-and-grin/fishing-blog",
+  "description": "A modern fishing blog platform built with PHP",
   "type": "project",
   "require": {
-    "php": "^8.4",
+    "php": ">=8.2",
     "ext-pdo": "*",
     "ext-pdo_mysql": "*",
     "twig/twig": "^3.21",
@@ -17,6 +17,11 @@
   "autoload": {
     "psr-4": {
       "GripAndGrin\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "GripAndGrin\\Tests\\": "tests/"
     }
   },
   "scripts": {

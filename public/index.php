@@ -1,510 +1,417 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../vendor/autoload.php';
-
-// Error reporting for development
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 // Start session
 session_start();
 
-// Simple Router
-$requestUri = $_SERVER['REQUEST_URI'];
-$requestMethod = $_SERVER['REQUEST_METHOD'];
+// Load Composer autoloader
+require_once __DIR__ . '/../vendor/autoload.php';
 
-// Remove query string from URI
-$uri = parse_url($requestUri, PHP_URL_PATH);
-
-// Health check endpoint (no database needed)
-if ($uri === '/health' || $uri === '/health.php') {
-    header('Content-Type: application/json');
-    echo json_encode([
-        'status' => 'OK',
-        'timestamp' => date('c'),
-        'php_version' => PHP_VERSION,
-        'memory_usage' => memory_get_usage(true),
-        'database_status' => 'pending'
-    ]);
-    exit;
+// Load environment variables if .env file exists
+if (file_exists(__DIR__ . '/../.env')) {
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+    $dotenv->load();
 }
 
 // Check if database is available
-$databaseAvailable = false;
+function isDatabaseAvailable(): bool {
+    try {
+        // Try Railway DATABASE_URL first
+        $databaseUrl = $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL');
+        if ($databaseUrl) {
+            $pdo = new PDO($databaseUrl, null, null, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_TIMEOUT => 5
+            ]);
+            $pdo->query('SELECT 1');
+            return true;
+        }
 
-try {
-    // Try to connect to database
-    $databaseUrl = $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL');
+        // Fallback to individual environment variables
+        $host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?? 'mysql';
+        $dbname = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?? 'grip_and_grin';
+        $username = $_ENV['DB_USER'] ?? getenv('DB_USER') ?? 'user';
+        $password = $_ENV['DB_PASSWORD'] ?? getenv('DB_PASSWORD') ?? 'password';
 
-    if ($databaseUrl) {
-        // Railway provides DATABASE_URL
-        $url = parse_url($databaseUrl);
-        $host = $url['host'];
-        $port = $url['port'] ?? 3306;
-        $database = ltrim($url['path'], '/');
-        $username = $url['user'];
-        $password = $url['pass'];
-        $dsn = "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4";
-    } else {
-        // Local development or fallback
-        $dsn = 'mysql:host=mysql;dbname=grip_and_grin_db;charset=utf8mb4';
-        $username = 'user';
-        $password = 'password';
+        $dsn = "mysql:host={$host};dbname={$dbname};charset=utf8mb4";
+        $pdo = new PDO($dsn, $username, $password, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_TIMEOUT => 5
+        ]);
+        $pdo->query('SELECT 1');
+        return true;
+    } catch (Exception $e) {
+        error_log("Database connection failed: " . $e->getMessage());
+        return false;
     }
-
-    // Test the connection
-    $testPdo = new PDO($dsn, $username, $password, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_TIMEOUT => 5
-    ]);
-
-    $databaseAvailable = true;
-
-} catch (Exception $e) {
-    // Database not available - show setup page
-    error_log('Database connection failed: ' . $e->getMessage());
-    $databaseAvailable = false;
 }
 
 // If database is not available, show setup page
-if (!$databaseAvailable) {
-    renderSetupPage();
+if (!isDatabaseAvailable()) {
+    $phpVersion = PHP_VERSION;
+    $environment = $_ENV['RAILWAY_ENVIRONMENT'] ?? getenv('RAILWAY_ENVIRONMENT') ?? 'Development';
+    $port = $_ENV['PORT'] ?? getenv('PORT') ?? '80';
+    $databaseUrl = $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL');
+
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Grip & Grin - Setup Required</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                padding: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .setup-container {
+                background: white;
+                border-radius: 12px;
+                padding: 40px;
+                max-width: 800px;
+                width: 100%;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            }
+            .logo {
+                text-align: center;
+                font-size: 3rem;
+                margin-bottom: 10px;
+            }
+            .title {
+                text-align: center;
+                font-size: 2rem;
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 10px;
+            }
+            .subtitle {
+                text-align: center;
+                color: #666;
+                margin-bottom: 30px;
+                font-size: 1.1rem;
+            }
+            .status {
+                background: #fff3cd;
+                border: 1px solid #ffeaa7;
+                border-radius: 8px;
+                padding: 20px;
+                margin: 20px 0;
+                color: #856404;
+            }
+            .status h3 {
+                margin-bottom: 10px;
+                font-size: 1.2rem;
+            }
+            .info-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+                margin: 30px 0;
+            }
+            .info-card {
+                background: #f8f9fa;
+                border-radius: 8px;
+                padding: 20px;
+                border-left: 4px solid #007cba;
+            }
+            .info-card h4 {
+                margin-bottom: 15px;
+                color: #333;
+            }
+            .info-card ul {
+                list-style: none;
+                padding: 0;
+            }
+            .info-card li {
+                padding: 5px 0;
+                display: flex;
+                justify-content: space-between;
+                border-bottom: 1px solid #e9ecef;
+            }
+            .info-card li:last-child {
+                border-bottom: none;
+            }
+            .status-indicator {
+                font-weight: bold;
+            }
+            .status-ok { color: #28a745; }
+            .status-error { color: #dc3545; }
+            .status-warning { color: #ffc107; }
+            .instructions {
+                background: #e8f5e8;
+                border: 1px solid #c3e6cb;
+                border-radius: 8px;
+                padding: 20px;
+                margin: 20px 0;
+                color: #155724;
+            }
+            .instructions h4 {
+                margin-bottom: 15px;
+            }
+            .instructions ol {
+                padding-left: 20px;
+            }
+            .instructions li {
+                margin: 10px 0;
+                line-height: 1.5;
+            }
+            .btn {
+                display: inline-block;
+                background: #667eea;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 6px;
+                text-decoration: none;
+                font-weight: 500;
+                margin: 10px 5px;
+                transition: background 0.2s;
+            }
+            .btn:hover {
+                background: #5a67d8;
+            }
+            .btn-secondary {
+                background: #6c757d;
+            }
+            .btn-secondary:hover {
+                background: #5a6268;
+            }
+            .footer {
+                text-align: center;
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #e9ecef;
+                color: #6c757d;
+                font-size: 0.9rem;
+            }
+        </style>
+    </head>
+    <body>
+    <div class="setup-container">
+        <div class="logo">🎣</div>
+        <div class="title">Grip & Grin</div>
+        <div class="subtitle">Fishing Blog Platform</div>
+
+        <div class="status">
+            <h3>⚠️ Database Setup Required</h3>
+            <p>Your PHP application is running successfully, but the database connection needs to be configured.</p>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-card">
+                <h4>📊 System Status</h4>
+                <ul>
+                    <li>
+                        <span>Environment:</span>
+                        <span class="status-indicator status-ok"><?= htmlspecialchars($environment) ?></span>
+                    </li>
+                    <li>
+                        <span>PHP Version:</span>
+                        <span class="status-indicator status-ok"><?= htmlspecialchars($phpVersion) ?></span>
+                    </li>
+                    <li>
+                        <span>Port:</span>
+                        <span class="status-indicator status-ok"><?= htmlspecialchars($port) ?></span>
+                    </li>
+                    <li>
+                        <span>Apache:</span>
+                        <span class="status-indicator status-ok">Running</span>
+                    </li>
+                    <li>
+                        <span>Database:</span>
+                        <span class="status-indicator status-error">Not Connected</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="info-card">
+                <h4>🔧 Configuration</h4>
+                <ul>
+                    <li>
+                        <span>DATABASE_URL:</span>
+                        <span class="status-indicator <?= $databaseUrl ? 'status-ok' : 'status-error' ?>">
+                                <?= $databaseUrl ? 'Set' : 'Not Set' ?>
+                            </span>
+                    </li>
+                    <li>
+                        <span>Composer:</span>
+                        <span class="status-indicator status-ok">Loaded</span>
+                    </li>
+                    <li>
+                        <span>Autoloader:</span>
+                        <span class="status-indicator status-ok">Active</span>
+                    </li>
+                    <li>
+                        <span>Extensions:</span>
+                        <span class="status-indicator status-ok">PDO, MySQL</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h4>🚀 Railway Deployment Steps</h4>
+            <ol>
+                <li><strong>Add MySQL Database Service:</strong><br>
+                    Go to Railway Dashboard → Add Service → Database → MySQL
+                </li>
+                <li><strong>Wait for DATABASE_URL:</strong><br>
+                    Railway will automatically inject the DATABASE_URL environment variable
+                </li>
+                <li><strong>Run Database Migration:</strong><br>
+                    Visit <code>/migrate-railway.php</code> to set up tables and sample data
+                </li>
+                <li><strong>Refresh This Page:</strong><br>
+                    The full application will load automatically once database is connected
+                </li>
+            </ol>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="/health.php" class="btn btn-secondary">Health Check</a>
+            <a href="/migrate-railway.php" class="btn">Setup Database</a>
+        </div>
+
+        <div class="footer">
+            <p><strong>Grip & Grin</strong> - Built with PHP <?= htmlspecialchars($phpVersion) ?></p>
+            <p>Ready for Railway deployment with MySQL database</p>
+        </div>
+    </div>
+    </body>
+    </html>
+    <?php
     exit;
 }
 
-// Database is available - proceed with full application
+// Database is available - load full application
 try {
-    use GripAndGrin\Application\UseCases\AuthenticateUserUseCase;
-    use GripAndGrin\Application\UseCases\CreateArticleUseCase;
-    use GripAndGrin\Application\UseCases\GetAllUsersUseCase;
-    use GripAndGrin\Application\UseCases\GetArticleBySlugUseCase;
-    use GripAndGrin\Application\UseCases\GetArticlesUseCase;
-    use GripAndGrin\Application\UseCases\GetArticlesByCategoryUseCase;
-    use GripAndGrin\Application\UseCases\GetCategoriesUseCase;
-    use GripAndGrin\Application\UseCases\GetPaginatedArticlesUseCase;
-    use GripAndGrin\Application\UseCases\GetUserProfileUseCase;
-    use GripAndGrin\Application\UseCases\RegisterUserUseCase;
-    use GripAndGrin\Application\UseCases\SearchArticlesUseCase;
-    use GripAndGrin\Application\UseCases\UpdateArticleUseCase;
-    use GripAndGrin\Application\UseCases\UpdateUserProfileUseCase;
     use GripAndGrin\Infrastructure\Database\DatabaseConnection;
-    use GripAndGrin\Infrastructure\Middleware\AdminMiddleware;
     use GripAndGrin\Infrastructure\Repositories\PDOArticleRepository;
     use GripAndGrin\Infrastructure\Repositories\PDOCategoryRepository;
     use GripAndGrin\Infrastructure\Repositories\PDOUserRepository;
-    use GripAndGrin\Infrastructure\Services\ImageService;
+    use GripAndGrin\Application\UseCases\GetPaginatedArticlesUseCase;
+    use GripAndGrin\Application\UseCases\GetCategoriesUseCase;
     use GripAndGrin\Infrastructure\Services\SessionService;
-    use GripAndGrin\Infrastructure\Twig\SvgIconExtension;
-    use GripAndGrin\Presentation\Controllers\AdminController;
-    use GripAndGrin\Presentation\Controllers\ArticleController;
-    use GripAndGrin\Presentation\Controllers\AuthController;
-    use GripAndGrin\Presentation\Controllers\CategoryController;
-    use GripAndGrin\Presentation\Controllers\HomeController;
-    use GripAndGrin\Presentation\Controllers\ProfileController;
-    use GripAndGrin\Presentation\Controllers\SearchController;
-    use Symfony\Component\HttpFoundation\Request;
     use Twig\Environment;
     use Twig\Loader\FilesystemLoader;
 
-    $container = [];
-
-    // Database Connection
+    // Initialize database connection
+    $databaseUrl = $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL');
     if ($databaseUrl) {
-        $container[DatabaseConnection::class] = DatabaseConnection::fromUrl($databaseUrl);
+        $db = DatabaseConnection::fromUrl($databaseUrl);
     } else {
-        $container[DatabaseConnection::class] = new DatabaseConnection($dsn, $username, $password);
+        $host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?? 'mysql';
+        $dbname = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?? 'grip_and_grin';
+        $username = $_ENV['DB_USER'] ?? getenv('DB_USER') ?? 'user';
+        $password = $_ENV['DB_PASSWORD'] ?? getenv('DB_PASSWORD') ?? 'password';
+
+        $dsn = "mysql:host={$host};dbname={$dbname};charset=utf8mb4";
+        $db = new DatabaseConnection($dsn, $username, $password);
     }
 
-    // Session Service
-    $container[SessionService::class] = new SessionService();
+    // Initialize repositories
+    $articleRepository = new PDOArticleRepository($db);
+    $categoryRepository = new PDOCategoryRepository($db);
+    $userRepository = new PDOUserRepository($db);
 
-    // Services
-    $container[ImageService::class] = new ImageService();
+    // Initialize services
+    $sessionService = new SessionService();
 
-    // Twig Environment Setup
+    // Initialize Twig
     $loader = new FilesystemLoader(__DIR__ . '/../templates');
-    $container['twig'] = new Environment($loader, [
-        'debug' => true,
+    $twig = new Environment($loader, [
         'cache' => false,
-        'auto_reload' => true
+        'debug' => true,
     ]);
 
     // Add session globals to Twig
-    $container['twig']->addGlobal('session', $container[SessionService::class]);
+    $twig->addGlobal('session', $sessionService);
 
-    // Register the SvgIconExtension
+    // Register custom Twig extensions
     try {
-        $container['twig']->addExtension(new SvgIconExtension());
+        $twig->addExtension(new \GripAndGrin\Infrastructure\Twig\SvgIconExtension());
     } catch (Exception $e) {
         error_log('Failed to register SvgIconExtension: ' . $e->getMessage());
     }
 
-    // Repositories
-    $container[PDOArticleRepository::class] = new PDOArticleRepository($container[DatabaseConnection::class]);
-    $container[PDOCategoryRepository::class] = new PDOCategoryRepository($container[DatabaseConnection::class]);
-    $container[PDOUserRepository::class] = new PDOUserRepository($container[DatabaseConnection::class]);
+    // Simple routing
+    $requestUri = $_SERVER['REQUEST_URI'];
+    $path = parse_url($requestUri, PHP_URL_PATH);
+    $method = $_SERVER['REQUEST_METHOD'];
 
-    // Middleware
-    $container[AdminMiddleware::class] = new AdminMiddleware(
-        $container[SessionService::class],
-        $container[PDOUserRepository::class]
-    );
-
-    // Use Cases
-    $container[GetArticlesUseCase::class] = new GetArticlesUseCase($container[PDOArticleRepository::class]);
-    $container[GetArticleBySlugUseCase::class] = new GetArticleBySlugUseCase($container[PDOArticleRepository::class]);
-    $container[GetPaginatedArticlesUseCase::class] = new GetPaginatedArticlesUseCase($container[PDOArticleRepository::class]);
-    $container[SearchArticlesUseCase::class] = new SearchArticlesUseCase($container[PDOArticleRepository::class]);
-    $container[GetCategoriesUseCase::class] = new GetCategoriesUseCase($container[PDOCategoryRepository::class]);
-    $container[GetArticlesByCategoryUseCase::class] = new GetArticlesByCategoryUseCase(
-        $container[PDOArticleRepository::class],
-        $container[PDOCategoryRepository::class]
-    );
-    $container[AuthenticateUserUseCase::class] = new AuthenticateUserUseCase($container[PDOUserRepository::class]);
-    $container[RegisterUserUseCase::class] = new RegisterUserUseCase($container[PDOUserRepository::class]);
-    $container[CreateArticleUseCase::class] = new CreateArticleUseCase(
-        $container[PDOArticleRepository::class],
-        $container[ImageService::class]
-    );
-    $container[UpdateArticleUseCase::class] = new UpdateArticleUseCase(
-        $container[PDOArticleRepository::class],
-        $container[ImageService::class]
-    );
-    $container[GetAllUsersUseCase::class] = new GetAllUsersUseCase($container[PDOUserRepository::class]);
-    $container[GetUserProfileUseCase::class] = new GetUserProfileUseCase($container[PDOUserRepository::class]);
-    $container[UpdateUserProfileUseCase::class] = new UpdateUserProfileUseCase($container[PDOUserRepository::class]);
-
-    // Controllers
-    $container[HomeController::class] = new HomeController($container['twig'], $container[GetPaginatedArticlesUseCase::class]);
-    $container[ArticleController::class] = new ArticleController($container['twig'], $container[GetArticleBySlugUseCase::class]);
-    $container[SearchController::class] = new SearchController($container['twig'], $container[SearchArticlesUseCase::class]);
-    $container[CategoryController::class] = new CategoryController($container['twig'], $container[GetArticlesByCategoryUseCase::class]);
-    $container[AuthController::class] = new AuthController(
-        $container['twig'],
-        $container[AuthenticateUserUseCase::class],
-        $container[RegisterUserUseCase::class],
-        $container[SessionService::class]
-    );
-    $container[AdminController::class] = new AdminController(
-        $container['twig'],
-        $container[AdminMiddleware::class],
-        $container[SessionService::class],
-        $container[GetPaginatedArticlesUseCase::class],
-        $container[PDOArticleRepository::class],
-        $container[GetCategoriesUseCase::class],
-        $container[CreateArticleUseCase::class],
-        $container[UpdateArticleUseCase::class],
-        $container[GetAllUsersUseCase::class]
-    );
-    $container[ProfileController::class] = new ProfileController(
-        $container['twig'],
-        $container[SessionService::class],
-        $container[GetUserProfileUseCase::class],
-        $container[UpdateUserProfileUseCase::class]
-    );
-
-    // Route handling
-    switch ($uri) {
+    switch ($path) {
         case '/':
-            $controller = $container[HomeController::class];
-            $controller->index();
+        case '/home':
+            // Home page with articles
+            $getArticlesUseCase = new GetPaginatedArticlesUseCase($articleRepository);
+            $getCategoriesUseCase = new GetCategoriesUseCase($categoryRepository);
+
+            $page = (int)($_GET['page'] ?? 1);
+            $limit = 6;
+
+            $result = $getArticlesUseCase->execute($page, $limit);
+            $categories = $getCategoriesUseCase->execute();
+
+            echo $twig->render('home.html.twig', [
+                'title' => 'Grip & Grin - Fishing Adventures',
+                'articles' => $result['articles'],
+                'categories' => $categories,
+                'pagination' => $result['pagination'],
+                'current_page' => $page,
+            ]);
             break;
 
-        case '/search':
-            $controller = $container[SearchController::class];
-            $controller->search();
-            break;
-
-        case '/login':
-            $controller = $container[AuthController::class];
-            if ($requestMethod === 'POST') {
-                $controller->login();
-            } else {
-                $controller->showLogin();
-            }
-            break;
-
-        case '/register':
-            $controller = $container[AuthController::class];
-            if ($requestMethod === 'POST') {
-                $controller->register();
-            } else {
-                $controller->showRegister();
-            }
-            break;
-
-        case '/logout':
-            $controller = $container[AuthController::class];
-            $controller->logout();
-            break;
-
-        case '/profile':
-            $controller = $container[ProfileController::class];
-            if ($requestMethod === 'POST') {
-                $controller->update();
-            } else {
-                $controller->show();
-            }
-            break;
-
-        case '/admin/dashboard':
-            $controller = $container[AdminController::class];
-            $controller->dashboard();
-            break;
-
-        case '/admin/articles':
-            $controller = $container[AdminController::class];
-            $controller->articles();
-            break;
-
-        case '/admin/articles/create':
-            $controller = $container[AdminController::class];
-            if ($requestMethod === 'POST') {
-                $controller->createArticle();
-            } else {
-                $controller->showCreateArticle();
-            }
-            break;
-
-        case '/admin/users':
-            $controller = $container[AdminController::class];
-            $controller->users();
+        case '/health':
+        case '/health.php':
+            header('Content-Type: application/json');
+            echo json_encode([
+                'status' => 'healthy',
+                'database' => 'connected',
+                'php_version' => PHP_VERSION,
+                'timestamp' => date('c'),
+                'memory_usage' => memory_get_usage(true)
+            ]);
             break;
 
         default:
-            // Handle dynamic routes
-            $parts = explode('/', trim($uri, '/'));
-
-            if (count($parts) === 2 && $parts[0] === 'category') {
-                $controller = $container[CategoryController::class];
-                $controller->show($parts[1]);
-            } elseif (count($parts) === 2 && $parts[0] === 'article') {
-                $controller = $container[ArticleController::class];
-                $controller->show($parts[1]);
-            } elseif (count($parts) === 3 && $parts[0] === 'admin' && $parts[1] === 'articles') {
-                $controller = $container[AdminController::class];
-                if ($parts[2] === 'edit' && $requestMethod === 'POST') {
-                    $controller->updateArticle($_GET['id'] ?? '');
-                } elseif ($parts[2] === 'edit') {
-                    $controller->showEditArticle($_GET['id'] ?? '');
-                } elseif ($parts[2] === 'delete') {
-                    $controller->deleteArticle($_GET['id'] ?? '');
-                }
-            } else {
-                // 404 Not Found
-                http_response_code(404);
-                echo $container['twig']->render('404.html.twig');
-            }
+            http_response_code(404);
+            echo $twig->render('404.html.twig', [
+                'title' => 'Page Not Found - Grip & Grin'
+            ]);
             break;
     }
 
 } catch (Exception $e) {
-    error_log('Application error: ' . $e->getMessage());
-    error_log('Stack trace: ' . $e->getTraceAsString());
+    error_log("Application error: " . $e->getMessage());
+    http_response_code(500);
 
     // Show error page
-    http_response_code(500);
-    echo '<h1>Application Error</h1>';
-    echo '<p>' . htmlspecialchars($e->getMessage()) . '</p>';
-    echo '<pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
-}
-
-function renderSetupPage(): void
-{
-    $phpVersion = PHP_VERSION;
-    $environment = $_ENV['RAILWAY_ENVIRONMENT'] ?? 'Development';
-    $port = $_ENV['PORT'] ?? '80';
-
-    echo <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grip and Grin - Setup Required</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container { 
-            max-width: 900px; 
-            margin: 0 auto; 
-            background: white; 
-            padding: 40px; 
-            border-radius: 12px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        h1 { 
-            color: #2c3e50; 
-            text-align: center; 
-            margin-bottom: 30px;
-            font-size: 2.5rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-        }
-        .status { 
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7); 
-            border: 1px solid #ffeaa7;
-            color: #856404;
-            padding: 25px; 
-            border-radius: 10px; 
-            margin: 25px 0;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .status h2 {
-            margin-bottom: 10px;
-            font-size: 1.5rem;
-        }
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-        }
-        .info-card {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            padding: 25px;
-            border-radius: 10px;
-            border-left: 5px solid #007cba;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .info-card h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            font-size: 1.2rem;
-        }
-        .info-card ul {
-            list-style: none;
-            padding: 0;
-        }
-        .info-card li {
-            padding: 8px 0;
-            border-bottom: 1px solid #dee2e6;
-        }
-        .info-card li:last-child {
-            border-bottom: none;
-        }
-        .info-card strong {
-            color: #495057;
-            display: inline-block;
-            width: 140px;
-        }
-        .button { 
-            display: inline-block; 
-            background: linear-gradient(135deg, #007cba, #005a87); 
-            color: white; 
-            padding: 12px 24px; 
-            text-decoration: none; 
-            border-radius: 8px; 
-            margin: 10px 5px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .button:hover { 
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
-        }
-        .setup-steps {
-            background: #e8f5e8;
-            border: 1px solid #c3e6cb;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        .setup-steps h3 {
-            color: #155724;
-            margin-bottom: 15px;
-        }
-        .setup-steps ol {
-            padding-left: 20px;
-        }
-        .setup-steps li {
-            margin: 10px 0;
-            color: #155724;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #e9ecef;
-            color: #6c757d;
-        }
-        .footer p {
-            margin: 5px 0;
-        }
-        @media (max-width: 768px) {
-            .container { padding: 20px; }
-            h1 { font-size: 2rem; }
-            .info-grid { grid-template-columns: 1fr; }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🏎️ Grip and Grin</h1>
-        
-        <div class="status">
-            <h2>⚠️ Database Setup Required</h2>
-            <p>Your PHP application is running successfully, but the database connection is not yet configured. Please follow the setup steps below.</p>
+    echo '<!DOCTYPE html>
+    <html>
+    <head>
+        <title>Application Error</title>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
+            .error { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .error h1 { color: #dc3545; margin-bottom: 20px; }
+            .error pre { background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto; }
+        </style>
+    </head>
+    <body>
+        <div class="error">
+            <h1>Application Error</h1>
+            <p><strong>Message:</strong> ' . htmlspecialchars($e->getMessage()) . '</p>
+            <pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>
         </div>
-        
-        <div class="info-grid">
-            <div class="info-card">
-                <h3>📊 System Information</h3>
-                <ul>
-                    <li><strong>Environment:</strong> {$environment}</li>
-                    <li><strong>PHP Version:</strong> {$phpVersion}</li>
-                    <li><strong>Port:</strong> {$port}</li>
-                    <li><strong>Status:</strong> ✅ Running</li>
-                    <li><strong>Database:</strong> ❌ Not Connected</li>
-                </ul>
-            </div>
-            
-            <div class="info-card">
-                <h3>🔧 Application Status</h3>
-                <ul>
-                    <li><strong>Docker:</strong> ✅ Running</li>
-                    <li><strong>Apache:</strong> ✅ Active</li>
-                    <li><strong>PHP:</strong> ✅ Operational</li>
-                    <li><strong>Composer:</strong> ✅ Loaded</li>
-                    <li><strong>Database:</strong> ⏳ Pending Setup</li>
-                </ul>
-            </div>
-        </div>
-        
-        <div class="setup-steps">
-            <h3>📋 Next Steps to Complete Setup</h3>
-            <ol>
-                <li><strong>Add MySQL Database Service</strong> in Railway dashboard</li>
-                <li><strong>Wait for Database URL</strong> to be automatically injected</li>
-                <li><strong>Run Database Migration</strong> at <a href="/migrate-railway.php" class="button">Run Migration</a></li>
-                <li><strong>Refresh this page</strong> - the full application will load automatically</li>
-            </ol>
-        </div>
-        
-        <div class="info-card">
-            <h3>🔗 Available Endpoints</h3>
-            <ul>
-                <li><a href="/health" style="color: #007cba; text-decoration: none;">Health Check API</a> - JSON status endpoint</li>
-                <li><a href="/migrate-railway.php" style="color: #007cba; text-decoration: none;">Database Migration</a> - Run after adding MySQL service</li>
-            </ul>
-        </div>
-        
-        <div class="footer">
-            <p><strong>Grip and Grin</strong> - Classic Car News & Reviews Platform</p>
-            <p>Built with PHP {$phpVersion} • Powered by Railway • Docker Containerized</p>
-            <p>© 2025 Grip and Grin. Ready for database setup.</p>
-        </div>
-    </div>
-</body>
-</html>
-HTML;
+    </body>
+    </html>';
 }
 ?>
