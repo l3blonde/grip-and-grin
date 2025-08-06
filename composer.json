@@ -8,12 +8,22 @@
     "ext-pdo_mysql": "*",
     "twig/twig": "^3.21",
     "symfony/http-foundation": "^7.3",
-    "monolog/monolog": "^3.5"
+    "monolog/monolog": "^3.5",
+    "vlucas/phpdotenv": "^5.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.0"
   },
   "autoload": {
     "psr-4": {
       "GripAndGrin\\": "src/"
     }
+  },
+  "scripts": {
+    "test": "phpunit",
+    "post-install-cmd": [
+      "php -r \"if (!file_exists('public/uploads')) { mkdir('public/uploads', 0755, true); }\""
+    ]
   },
   "config": {
     "optimize-autoloader": true,
