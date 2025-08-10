@@ -5,27 +5,17 @@
 {% block content %}
     <section class="article-list">
         {% for article in articles %}
-            <article class="article-summary observe-lazy">
+            <article class="article-summary">
                 {% if article.hasFeaturedImage %}
                     <div class="article-image">
                         <a href="/article/{{ article.slug }}">
-                            <div class="image-container">
-                                <picture>
-                                    <source media="(max-width: 480px)"
-                                            srcset="{{ article.featuredImage.thumbnailPath|replace({'.webp': '-mobile.webp'}) }}"
-                                            type="image/webp">
-                                    <source media="(max-width: 480px)"
-                                            srcset="{{ article.featuredImage.thumbnailPath|replace({'.webp': '-mobile.jpg'}) }}"
-                                            type="image/jpeg">
-                                    <source srcset="{{ article.featuredImage.thumbnailPath }}" type="image/webp">
-                                    <img data-src="{{ article.featuredImage.thumbnailPath|replace({'.webp': '.jpg'}) }}"
-                                         alt="{{ article.featuredImage.altText }}"
-                                         class="article-thumbnail lazy-image"
-                                         loading="lazy"
-                                         width="300"
-                                         height="200">
-                                </picture>
-                            </div>
+                            <picture>
+                                <source srcset="{{ article.featuredImage.thumbnailPath }}" type="image/webp">
+                                <img src="{{ article.featuredImage.thumbnailPath|replace({'.webp': '.jpg'}) }}"
+                                     alt="{{ article.featuredImage.altText }}"
+                                     class="article-thumbnail"
+                                     loading="lazy">
+                            </picture>
                         </a>
                     </div>
                 {% endif %}
@@ -36,44 +26,26 @@
                     </h2>
                     <p class="article-excerpt">{{ article.content|striptags|slice(0, 150) }}...</p>
                     <div class="article-meta">
-                        <span>
-                            {{ icon('calendar', 'icon small') }}
-                            <time datetime="{{ article.publishedAt|date('Y-m-d') }}">
-                                {{ article.publishedAt|date("F j, Y") }}
-                            </time>
-                        </span>
-                        <a href="/article/{{ article.slug }}" class="read-more">
-                            Read More
-                            {{ icon('arrow-right', 'icon small') }}
-                        </a>
+                        <span>Published on {{ article.publishedAt|date("F j, Y") }}</span>
+                        <a href="/article/{{ article.slug }}" class="read-more">Read More &rarr;</a>
                     </div>
                 </div>
             </article>
         {% else %}
-            <div class="no-articles">
-                <p>No articles found.</p>
-            </div>
+            <p>No articles found.</p>
         {% endfor %}
     </section>
 
     {% if totalPages > 1 %}
-        <nav class="pagination" role="navigation" aria-label="Pagination">
+        <nav class="pagination">
             {% if hasPreviousPage %}
-                <a href="/?page={{ previousPage }}" class="pagination-link pagination-prev" rel="prev">
-                    {{ icon('arrow-left', 'icon small') }}
-                    <span class="hidden-mobile">Previous</span>
-                </a>
+                <a href="/?page={{ previousPage }}" class="pagination-link pagination-prev">← Previous</a>
             {% endif %}
 
-            <span class="pagination-info" aria-current="page">
-                Page {{ currentPage }} of {{ totalPages }}
-            </span>
+            <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
 
             {% if hasNextPage %}
-                <a href="/?page={{ nextPage }}" class="pagination-link pagination-next" rel="next">
-                    <span class="hidden-mobile">Next</span>
-                    {{ icon('arrow-right', 'icon small') }}
-                </a>
+                <a href="/?page={{ nextPage }}" class="pagination-link pagination-next">Next →</a>
             {% endif %}
         </nav>
     {% endif %}
