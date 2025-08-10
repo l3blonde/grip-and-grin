@@ -1,18 +1,30 @@
 {
-  "name": "grip-and-grin/fishing-blog",
-  "description": "A modern fishing blog platform built with PHP",
+  "name": "grip-and-grin/classic-car-blog",
+  "description": "A classic car news web built with PHP and Twig",
   "type": "project",
+  "license": "MIT",
   "require": {
-    "php": ">=8.4",
+    "php": ">=8.1",
     "ext-pdo": "*",
     "ext-pdo_mysql": "*",
-    "twig/twig": "^3.21",
-    "symfony/http-foundation": "^7.3",
-    "monolog/monolog": "^3.5"
+    "twig/twig": "^3.21.1",
+    "symfony/http-foundation": "^7.3.2",
+    "monolog/monolog": "^3.9.0"
   },
   "autoload": {
     "psr-4": {
       "GripAndGrin\\": "src/"
     }
-  }
+  },
+  "scripts": {
+    "post-install-cmd": ["php public/migrate-simple.php"],
+    "start": "php -S localhost:8080 -t public public/index.php"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true,
+    "classmap-authoritative": true
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
 }

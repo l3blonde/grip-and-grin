@@ -1,0 +1,41 @@
+name: grip-and-grin
+services:
+  - name: web
+    source_dir: /
+    github:
+      repo: YOUR_GITHUB_USERNAME/grip-and-grin
+      branch: main
+    run_command: |
+      cd /app && php -S 0.0.0.0:8080 -t public public/index.php
+    environment_slug: php
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    http_port: 8080
+    routes:
+      - path: /
+    health_check:
+      http_path: /health.php
+    envs:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: DATABASE_URL
+        value: ${db.DATABASE_URL}
+      - key: DATABASE_HOST
+        value: ${db.HOSTNAME}
+      - key: DATABASE_PORT
+        value: ${db.PORT}
+      - key: DATABASE_NAME
+        value: ${db.DATABASE}
+      - key: DATABASE_USER
+        value: ${db.USERNAME}
+      - key: DATABASE_PASSWORD
+        value: ${db.PASSWORD}
+
+databases:
+  - name: db
+    engine: MYSQL
+    version: "8"
+    size: basic-xs
+    num_nodes: 1
