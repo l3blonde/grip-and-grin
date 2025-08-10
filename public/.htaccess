@@ -1,3 +1,8 @@
+# =====================================================
+# Grip & Grin - Apache Configuration for Linode
+# Optimized for PHP 8.3 and Apache 2.4+
+# =====================================================
+
 # Enable URL Rewriting
 RewriteEngine On
 
