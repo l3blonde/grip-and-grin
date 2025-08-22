@@ -1,7 +1,6 @@
-# =====================================================
-# Grip & Grin - Apache Configuration for Linode
-# Optimized for PHP 8.3 and Apache 2.4+
-# =====================================================
+# ==================================================
+# GRIP & GRIN - FIXED .HTACCESS FOR LINODE (NO DIRECTORY DIRECTIVE)
+# ==================================================
 
 # Enable URL Rewriting
 RewriteEngine On
@@ -14,39 +13,50 @@ RewriteEngine On
     # XSS Protection
     Header set X-XSS-Protection "1; mode=block"
 
-    # Content Type Options
+    # Prevent MIME type sniffing
     Header set X-Content-Type-Options nosniff
 
     # Referrer Policy
     Header set Referrer-Policy "strict-origin-when-cross-origin"
 
-    # Remove Server Information
+    # Remove server signature
     Header unset Server
     Header unset X-Powered-By
 </IfModule>
 
-# Hide sensitive files
-<FilesMatch "\.(env|sql|log|md|json|lock|yml|yaml|sh)$">
+# Block access to sensitive files (SPECIFIC FILES ONLY)
+<FilesMatch "\.(env|git|sql|md|sh|log|bak|backup|old)$">
     Order allow,deny
     Deny from all
 </FilesMatch>
 
-# Protect vendor directory
-<IfModule mod_alias.c>
-    RedirectMatch 403 /vendor/.*$
+# Block access to specific sensitive files
+<Files ~ "^(composer\.(json|lock)|\.env.*|\.git.*|schema\.sql|README\.md)$">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Block PHP files in uploads directory (without Directory directive)
+<FilesMatch "^uploads/.*\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Enable Compression (if mod_deflate is available)
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE image/svg+xml
 </IfModule>
 
-# Protect src directory
-<IfModule mod_alias.c>
-    RedirectMatch 403 /src/.*$
-</IfModule>
-
-# Main URL Rewriting Rules
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php [QSA,L]
-
-# Cache Control for Static Assets
+# Browser Caching
 <IfModule mod_expires.c>
     ExpiresActive On
 
@@ -59,94 +69,42 @@ RewriteRule ^(.*)$ index.php [QSA,L]
     ExpiresByType image/svg+xml "access plus 1 month"
 
     # CSS and JavaScript
-    ExpiresByType text/css "access plus 1 month"
-    ExpiresByType application/javascript "access plus 1 month"
-    ExpiresByType text/javascript "access plus 1 month"
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType application/x-javascript "access plus 1 week"
 
     # Fonts
-    ExpiresByType font/woff "access plus 1 year"
-    ExpiresByType font/woff2 "access plus 1 year"
-    ExpiresByType application/font-woff "access plus 1 year"
-    ExpiresByType application/font-woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 month"
+    ExpiresByType font/woff2 "access plus 1 month"
+    ExpiresByType application/font-woff "access plus 1 month"
+    ExpiresByType application/font-woff2 "access plus 1 month"
 </IfModule>
 
-# Compression for better performance
-<IfModule mod_deflate.c>
-    # Compress HTML, CSS, JavaScript, Text, XML and fonts
-    AddOutputFilterByType DEFLATE application/javascript
-    AddOutputFilterByType DEFLATE application/rss+xml
-    AddOutputFilterByType DEFLATE application/vnd.ms-fontobject
-    AddOutputFilterByType DEFLATE application/x-font
-    AddOutputFilterByType DEFLATE application/x-font-opentype
-    AddOutputFilterByType DEFLATE application/x-font-otf
-    AddOutputFilterByType DEFLATE application/x-font-truetype
-    AddOutputFilterByType DEFLATE application/x-font-ttf
-    AddOutputFilterByType DEFLATE application/x-javascript
-    AddOutputFilterByType DEFLATE application/xhtml+xml
-    AddOutputFilterByType DEFLATE application/xml
-    AddOutputFilterByType DEFLATE font/opentype
-    AddOutputFilterByType DEFLATE font/otf
-    AddOutputFilterByType DEFLATE font/ttf
-    AddOutputFilterByType DEFLATE image/svg+xml
-    AddOutputFilterByType DEFLATE image/x-icon
-    AddOutputFilterByType DEFLATE text/css
-    AddOutputFilterByType DEFLATE text/html
-    AddOutputFilterByType DEFLATE text/javascript
-    AddOutputFilterByType DEFLATE text/plain
-    AddOutputFilterByType DEFLATE text/xml
-</IfModule>
+# Main URL Rewriting Rules
+# Allow access to existing files and directories
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
 
-# PHP Configuration Overrides
-<IfModule mod_php8.c>
-    # Increase memory limit for image processing
-    php_value memory_limit 256M
+# Remove trailing slashes (but allow directories)
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{THE_REQUEST} /+[^\s?]*?/[\s?]
+RewriteRule ^(.+)/ $1 [R=301,L]
 
-    # File upload settings
+# Remove index.php from URLs
+RewriteCond %{THE_REQUEST} /+[^\s?]*?/index\.php[\s?]
+RewriteRule ^(.+)/index\.php$ $1 [R=301,L]
+
+# Error Pages
+ErrorDocument 404 /404.html
+ErrorDocument 500 /error.html
+
+# PHP Settings (if allowed by server)
+<IfModule mod_php.c>
     php_value upload_max_filesize 10M
     php_value post_max_size 10M
-    php_value max_file_uploads 20
-
-    # Session settings
-    php_value session.cookie_httponly 1
-    php_value session.cookie_secure 1
-    php_value session.use_strict_mode 1
-
-    # Error handling (disable in production)
+    php_value max_execution_time 300
+    php_value max_input_vars 3000
     php_flag display_errors Off
     php_flag log_errors On
-    php_value error_log /var/log/apache2/php_errors.log
 </IfModule>
-
-# Force HTTPS (uncomment when SSL is configured)
-# RewriteCond %{HTTPS} off
-# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
-# WWW redirect (choose one - with or without www)
-# Redirect to www version:
-# RewriteCond %{HTTP_HOST} !^www\. [NC]
-# RewriteRule ^(.*)$ https://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
-# Redirect to non-www version:
-# RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
-# RewriteRule ^(.*)$ https://%1%{REQUEST_URI} [L,R=301]
-
-# Custom Error Pages
-ErrorDocument 404 /404.html
-ErrorDocument 500 /500.html
-
-# Prevent access to backup files
-<FilesMatch "\.(bak|backup|old|orig|save|swp|tmp)$">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
-
-# Block common exploit attempts
-RewriteCond %{QUERY_STRING} (<|%3C).*script.*(>|%3E) [NC,OR]
-RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
-RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2}) [OR]
-RewriteCond %{QUERY_STRING} ^.*(\[|\]|$$|$$|<|>|ê|"|;|\?|\*|=$).* [NC,OR]
-RewriteCond %{QUERY_STRING} ^.*("|'|<|>|\|).* [NC,OR]
-RewriteCond %{QUERY_STRING} ^.*(%0|%A|%B|%C|%D|%E|%F|127\.0).* [NC,OR]
-RewriteCond %{QUERY_STRING} ^.*(globals|encode|localhost|loopback).* [NC,OR]
-RewriteCond %{QUERY_STRING} ^.*(request|select|insert|union|declare).* [NC]
-RewriteRule ^(.*)$ - [F,L]
