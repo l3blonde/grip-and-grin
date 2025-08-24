@@ -20,14 +20,14 @@ class DatabaseConnection
             $dbHost = $_ENV['DB_HOST'] ?? 'localhost';
             $dbName = $_ENV['DB_NAME'] ?? 'grip_and_grin_db';
             $dbUser = $_ENV['DB_USER'] ?? 'root';
-            $dbPassword = (isset($_ENV['DB_PASSWORD']) && $_ENV['DB_PASSWORD'] !== '') ? $_ENV['DB_PASSWORD'] : null;
+            $dbPassword = (isset($_ENV['DB_PASS']) && $_ENV['DB_PASS'] !== '') ? $_ENV['DB_PASS'] : null;
             $dbPort = $_ENV['DB_PORT'] ?? '3306';
 
             $dsn = "mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4";
 
             error_log("[DEBUG] DatabaseConnection attempting connection with user: $dbUser, host: $dbHost, db: $dbName");
             error_log("[DEBUG] Password is " . ($dbPassword === null ? "NULL (no password)" : "SET (length: " . strlen($dbPassword) . ")"));
-            error_log("[DEBUG] Raw DB_PASSWORD from env: '" . ($_ENV['DB_PASSWORD'] ?? 'NOT_SET') . "'");
+            error_log("[DEBUG] Raw DB_PASS from env: '" . ($_ENV['DB_PASS'] ?? 'NOT_SET') . "'");
 
             try {
                 if ($dbPassword === null) {
