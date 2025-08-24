@@ -1,47 +1,74 @@
 <?php
+
 declare(strict_types=1);
 
 namespace GripAndGrin\Application\UseCases;
 
 use GripAndGrin\Domain\Interfaces\ArticleRepositoryInterface;
+use GripAndGrin\Domain\Interfaces\CategoryRepositoryInterface;
 
 class SearchArticlesUseCase
 {
-    private const ARTICLES_PER_PAGE = 5;
+    private ArticleRepositoryInterface $articleRepository;
+    private CategoryRepositoryInterface $categoryRepository;
 
-    public function __construct(private readonly ArticleRepositoryInterface $articleRepository)
-    {
+    public function __construct(
+        ArticleRepositoryInterface $articleRepository,
+        CategoryRepositoryInterface $categoryRepository
+    ) {
+        $this->articleRepository = $articleRepository;
+        $this->categoryRepository = $categoryRepository;
     }
 
-    public function execute(string $query, int $page = 1): array
+    public function execute(string $query, int $page = 1, int $perPage = 5): array
     {
-        if (empty(trim($query))) {
-            return [
-                'articles' => [],
-                'currentPage' => 1,
-                'totalPages' => 0,
-                'hasNextPage' => false,
-                'hasPreviousPage' => false,
-                'nextPage' => null,
-                'previousPage' => null,
-                'query' => $query,
+        $offset = ($page - 1) * $perPage;
+        $articles = $this->articleRepository->search($query, $perPage, $offset);
+        
+        // Enrich articles with category data
+        $enrichedArticles = [];
+        foreach ($articles as $article) {
+            $category = null;
+            if ($article->getCategoryId()) {
+                $category = $this->categoryRepository->findById($article->getCategoryId());
+            }
+            
+            $enrichedArticles[] = [
+                'article' => $article,
+                'category' => $category
             ];
         }
 
-        $offset = ($page - 1) * self::ARTICLES_PER_PAGE;
-        $articles = $this->articleRepository->searchArticles($query, self::ARTICLES_PER_PAGE, $offset);
-        $totalArticles = $this->articleRepository->countSearchResults($query);
-        $totalPages = (int) ceil($totalArticles / self::ARTICLES_PER_PAGE);
+        // <CHANGE> Fixed count method - get total results by searching without limit
+        $totalResults = $this->getTotalSearchResults($query);
+        $totalPages = (int) ceil($totalResults / $perPage);
+        $hasNextPage = $page < $totalPages;
+        $hasPreviousPage = $page > 1;
 
         return [
             'articles' => $articles,
-            'currentPage' => $page,
-            'totalPages' => $totalPages,
-            'hasNextPage' => $page < $totalPages,
-            'hasPreviousPage' => $page > 1,
-            'nextPage' => $page < $totalPages ? $page + 1 : null,
-            'previousPage' => $page > 1 ? $page - 1 : null,
-            'query' => $query,
+            'totalCount' => $totalResults,
+            'pagination' => [
+                'currentPage' => $page,
+                'totalPages' => $totalPages,
+                'totalResults' => $totalResults,
+                'hasNextPage' => $page < $totalPages,
+                'hasPreviousPage' => $page > 1
+            ]
         ];
+    }
+    
+    // <CHANGE> Added method to get total search results using existing search method
+    private function getTotalSearchResults(string $query): int
+    {
+        try {
+            // Get all results without pagination to count them
+            $allResults = $this->articleRepository->search($query, 1000, 0); // Large limit to get all
+            return count($allResults);
+        } catch (\Exception $e) {
+            // Fallback: return 0 if search fails
+            error_log('Search count error: ' . $e->getMessage());
+            return 0;
+        }
     }
 }

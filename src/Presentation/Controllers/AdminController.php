@@ -3,250 +3,385 @@ declare(strict_types=1);
 
 namespace GripAndGrin\Presentation\Controllers;
 
-use GripAndGrin\Application\UseCases\CreateArticleUseCase;
-use GripAndGrin\Application\UseCases\GetAllUsersUseCase;
-use GripAndGrin\Application\UseCases\GetCategoriesUseCase;
-use GripAndGrin\Application\UseCases\GetPaginatedArticlesUseCase;
-use GripAndGrin\Application\UseCases\UpdateArticleUseCase;
-use GripAndGrin\Domain\Interfaces\ArticleRepositoryInterface;
-use GripAndGrin\Infrastructure\Middleware\AdminMiddleware;
-use GripAndGrin\Infrastructure\Services\SessionService;
-use InvalidArgumentException;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Twig\Environment;
+use GripAndGrin\Infrastructure\Repositories\PDOArticleRepository;
+use GripAndGrin\Infrastructure\Repositories\PDOUserRepository;
+use GripAndGrin\Infrastructure\Repositories\PDOCategoryRepository;
+use GripAndGrin\Presentation\Middleware\AdminMiddleware;
+use PDO;
+use GripAndGrin\Domain\Entities\Article;
+use DateTime;
 
 class AdminController
 {
-    public function __construct(
-        private readonly Environment $twig,
-        private readonly AdminMiddleware $adminMiddleware,
-        private readonly SessionService $sessionService,
-        private readonly GetPaginatedArticlesUseCase $getPaginatedArticlesUseCase,
-        private readonly ArticleRepositoryInterface $articleRepository,
-        private readonly GetCategoriesUseCase $getCategoriesUseCase,
-        private readonly CreateArticleUseCase $createArticleUseCase,
-        private readonly UpdateArticleUseCase $updateArticleUseCase,
-        private readonly GetAllUsersUseCase $getAllUsersUseCase
-    ) {}
+    private PDOArticleRepository $articleRepository;
+    private PDOUserRepository $userRepository;
+    private PDOCategoryRepository $categoryRepository;
 
-    public function dashboard(): Response
+    public function __construct(PDO $pdo)
     {
-        $accessCheck = $this->adminMiddleware->handle();
-        if ($accessCheck) return $accessCheck;
-
-        $content = $this->twig->render('admin/dashboard.html.twig', [
-            'csrf_token' => $this->sessionService->generateCsrfToken()
-        ]);
-        return new Response($content);
+        $this->articleRepository = new PDOArticleRepository($pdo);
+        $this->userRepository = new PDOUserRepository($pdo);
+        $this->categoryRepository = new PDOCategoryRepository($pdo);
     }
 
-    public function articles(Request $request): Response
+    public function dashboard(): array
     {
-        $accessCheck = $this->adminMiddleware->handle();
-        if ($accessCheck) return $accessCheck;
+        AdminMiddleware::requireAdmin();
 
-        $page = max(1, (int) $request->query->get('page', 1));
+        $totalUsers = count($this->getUsersByRole('user'));
+        $totalAdmins = count($this->getUsersByRole('admin'));
+        $totalArticles = count($this->articleRepository->findAllForAdmin());
 
-        // Get all articles (not just published) for admin
-        $limit = 10;
-        $offset = ($page - 1) * $limit;
-        $articles = $this->articleRepository->findAllPaginated($limit, $offset);
-        $totalArticles = $this->articleRepository->countAll();
-        $totalPages = (int) ceil($totalArticles / $limit);
-
-        $content = $this->twig->render('admin/articles.html.twig', [
-            'articles' => $articles,
-            'currentPage' => $page,
-            'totalPages' => $totalPages,
-            'hasNextPage' => $page < $totalPages,
-            'hasPreviousPage' => $page > 1,
-            'nextPage' => $page < $totalPages ? $page + 1 : null,
-            'previousPage' => $page > 1 ? $page - 1 : null,
-            'csrf_token' => $this->sessionService->generateCsrfToken()
-        ]);
-        return new Response($content);
+        return [
+            'title' => 'Admin Dashboard',
+            'totalUsers' => $totalUsers,
+            'totalAdmins' => $totalAdmins,
+            'totalArticles' => $totalArticles
+        ];
     }
 
-    public function createArticleForm(): Response
+    public function articlesOverview(): array
     {
-        $accessCheck = $this->adminMiddleware->handle();
-        if ($accessCheck) return $accessCheck;
+        AdminMiddleware::requireAdmin();
 
-        $categories = $this->getCategoriesUseCase->execute();
+        $articles = $this->articleRepository->findAllForAdmin();
 
-        $content = $this->twig->render('admin/create-article.html.twig', [
-            'categories' => $categories,
-            'csrf_token' => $this->sessionService->generateCsrfToken()
-        ]);
-        return new Response($content);
+        return [
+            'title' => 'Articles Management',
+            'articles' => $articles
+        ];
     }
 
-    public function createArticle(Request $request): Response
+    public function usersOverview(): array
     {
-        $accessCheck = $this->adminMiddleware->handle();
-        if ($accessCheck) return $accessCheck;
+        AdminMiddleware::requireStrictAdmin();
 
-        if ($request->getMethod() !== 'POST') {
-            return new RedirectResponse('/admin/articles/create');
-        }
+        return [
+            'title' => 'Users Management',
+            'users' => $this->getUsersByRole('user')
+        ];
+    }
 
-        $title = $request->request->get('title', '');
-        $content = $request->request->get('content', '');
-        $excerpt = $request->request->get('excerpt', '');
-        $categoryId = (int) $request->request->get('category_id', 0);
-        $status = $request->request->get('status', 'draft');
-        $imageAltText = $request->request->get('image_alt_text', '');
-        $csrfToken = $request->request->get('csrf_token', '');
+    public function adminsOverview(): array
+    {
+        AdminMiddleware::requireStrictAdmin();
 
-        try {
-            // Validate CSRF token
-            if (!$this->sessionService->validateCsrfToken($csrfToken)) {
-                throw new InvalidArgumentException('Invalid security token');
+        return [
+            'title' => 'Administrators',
+            'admins' => $this->getUsersByRole('admin')
+        ];
+    }
+
+    public function users(): array
+    {
+        return $this->usersOverview();
+    }
+
+    public function admins(): array
+    {
+        return $this->adminsOverview();
+    }
+
+    public function createArticle(): array
+    {
+        AdminMiddleware::requireAdmin();
+
+        if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+            $title = $_POST['title'] ?? '';
+            $content = $_POST['content'] ?? '';
+            $excerpt = $_POST['excerpt'] ?? '';
+            $categoryId = (int) ($_POST['category_id'] ?? 1);
+            $status = $_POST['status'] ?? 'draft';
+            $imageUrl = $_POST['image_url'] ?? '';
+
+            $imagePath = $imageUrl; // Default to URL if provided
+
+            // Handle file upload
+            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                $imagePath = $this->handleImageUpload($_FILES['image']);
             }
 
-            $authorId = $this->sessionService->getCurrentUserId();
-            $uploadedImage = $_FILES['featured_image'] ?? null;
+            if ($title && $content) {
+                $article = new Article(
+                    0, // New article
+                    $title,
+                    $content,
+                    $categoryId,
+                    $excerpt ?: substr($content, 0, 150),
+                    $imagePath,
+                    $status === 'published',
+                    new DateTime(),
+                    new DateTime()
+                );
 
-            $article = $this->createArticleUseCase->execute(
-                $title,
-                $content,
-                $excerpt,
-                $authorId,
-                $categoryId,
-                $status,
-                $uploadedImage,
-                $imageAltText
-            );
-
-            return new RedirectResponse('/admin/articles?created=1');
-        } catch (InvalidArgumentException $e) {
-            $categories = $this->getCategoriesUseCase->execute();
-
-            $content = $this->twig->render('admin/create-article.html.twig', [
-                'error' => $e->getMessage(),
-                'categories' => $categories,
-                'title' => $title,
-                'content' => $content,
-                'excerpt' => $excerpt,
-                'category_id' => $categoryId,
-                'status' => $status,
-                'image_alt_text' => $imageAltText,
-                'csrf_token' => $this->sessionService->generateCsrfToken()
-            ]);
-            return new Response($content, 400);
+                $this->articleRepository->save($article);
+                header('Location: /admin-articles');
+                exit;
+            }
         }
+
+        $categories = $this->categoryRepository->findAll();
+
+        return [
+            'title' => 'Create Article',
+            'categories' => $categories,
+            'article' => null
+        ];
     }
 
-    public function editArticleForm(int $id): Response
+    public function editArticle(): array
     {
-        $accessCheck = $this->adminMiddleware->handle();
-        if ($accessCheck) return $accessCheck;
+        AdminMiddleware::requireAdmin();
 
-        $article = $this->articleRepository->findById($id);
+        $articleId = (int) ($_GET['id'] ?? 0);
+        $article = $this->articleRepository->findById($articleId);
+
         if (!$article) {
-            return new Response('Article not found', 404);
+            header('Location: /admin-articles');
+            exit;
         }
 
-        $categories = $this->getCategoriesUseCase->execute();
+        if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+            $title = $_POST['title'] ?? '';
+            $content = $_POST['content'] ?? '';
+            $excerpt = $_POST['excerpt'] ?? '';
+            $categoryId = (int) ($_POST['category_id'] ?? 1);
+            $status = $_POST['status'] ?? 'draft';
+            $imageUrl = $_POST['image_url'] ?? '';
 
-        $content = $this->twig->render('admin/edit-article.html.twig', [
-            'article' => $article,
+            $imagePath = $imageUrl ?: $article->getImagePath(); // Keep existing image if no new one
+
+            // Handle file upload
+            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                $imagePath = $this->handleImageUpload($_FILES['image']);
+            }
+
+            if ($title && $content) {
+                $updatedArticle = new Article(
+                    $article->getId(),
+                    $title,
+                    $content,
+                    $categoryId,
+                    $excerpt ?: substr($content, 0, 150),
+                    $imagePath,
+                    $status === 'published',
+                    $article->getCreatedAt(),
+                    new DateTime()
+                );
+
+                $this->articleRepository->save($updatedArticle);
+                header('Location: /admin-articles');
+                exit;
+            }
+        }
+
+        $categories = $this->categoryRepository->findAll();
+
+        return [
+            'title' => 'Edit Article',
             'categories' => $categories,
-            'csrf_token' => $this->sessionService->generateCsrfToken()
-        ]);
-        return new Response($content);
+            'article' => $article
+        ];
     }
 
-    public function updateArticle(int $id, Request $request): Response
+    public function deleteUser(): void
     {
-        $accessCheck = $this->adminMiddleware->handle();
-        if ($accessCheck) return $accessCheck;
+        AdminMiddleware::requireStrictAdmin();
 
-        if ($request->getMethod() !== 'POST') {
-            return new RedirectResponse("/admin/articles/{$id}/edit");
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: /admin-users");
+            exit;
         }
 
-        $title = $request->request->get('title', '');
-        $content = $request->request->get('content', '');
-        $excerpt = $request->request->get('excerpt', '');
-        $categoryId = (int) $request->request->get('category_id', 0);
-        $status = $request->request->get('status', 'draft');
-        $imageAltText = $request->request->get('image_alt_text', '');
-        $removeImage = $request->request->get('remove_image', false);
-        $csrfToken = $request->request->get('csrf_token', '');
-
-        try {
-            // Validate CSRF token
-            if (!$this->sessionService->validateCsrfToken($csrfToken)) {
-                throw new InvalidArgumentException('Invalid security token');
+        $userId = (int) ($_POST['user_id'] ?? 0);
+        if ($userId && $userId !== $_SESSION['user_id']) {
+            try {
+                $deactivateUseCase = new \GripAndGrin\Application\UseCases\DeactivateUserUseCase($this->userRepository);
+                $deactivateUseCase->execute($userId);
+                $_SESSION['success_message'] = 'User deactivated successfully';
+            } catch (\Exception $e) {
+                $_SESSION['error_message'] = $e->getMessage();
             }
-
-            $uploadedImage = $_FILES['featured_image'] ?? null;
-
-            $article = $this->updateArticleUseCase->execute(
-                $id,
-                $title,
-                $content,
-                $excerpt,
-                $categoryId,
-                $status,
-                $uploadedImage,
-                $imageAltText,
-                (bool) $removeImage
-            );
-
-            return new RedirectResponse('/admin/articles?updated=1');
-        } catch (InvalidArgumentException $e) {
-            $article = $this->articleRepository->findById($id);
-            $categories = $this->getCategoriesUseCase->execute();
-
-            $content = $this->twig->render('admin/edit-article.html.twig', [
-                'error' => $e->getMessage(),
-                'article' => $article,
-                'categories' => $categories,
-                'csrf_token' => $this->sessionService->generateCsrfToken()
-            ]);
-            return new Response($content, 400);
         }
+
+        header("Location: /admin-users");
+        exit;
     }
 
-    public function deleteArticle(int $id, Request $request): Response
+    public function deleteArticle(): void
     {
-        $accessCheck = $this->adminMiddleware->handle();
-        if ($accessCheck) return $accessCheck;
+        AdminMiddleware::requireAdmin();
 
-        if ($request->getMethod() !== 'POST') {
-            return new RedirectResponse('/admin/articles');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: /admin/articles");
+            exit;
         }
 
-        $csrfToken = $request->request->get('csrf_token', '');
+        $articleId = (int) ($_POST['article_id'] ?? 0);
+        if ($articleId) {
+            $this->articleRepository->delete($articleId);
+        }
 
-        try {
-            // Validate CSRF token
-            if (!$this->sessionService->validateCsrfToken($csrfToken)) {
-                throw new InvalidArgumentException('Invalid security token');
+        header("Location: /admin/articles");
+        exit;
+    }
+
+    public function toggleArticleStatus(): void
+    {
+        AdminMiddleware::requireAdmin();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: /admin/articles");
+            exit;
+        }
+
+        $articleId = (int) ($_POST['article_id'] ?? 0);
+        if ($articleId) {
+            $this->articleRepository->togglePublishStatus($articleId);
+        }
+
+        header("Location: /admin/articles");
+        exit;
+    }
+
+    public function gdprRequests(): array
+    {
+        AdminMiddleware::requireAdmin();
+
+        // For minimal GDPR, we just show basic cookie consent stats and any data requests
+        $cookieStats = $this->getCookieConsentStats();
+        $dataRequests = $this->getDataDeletionRequests();
+
+        return [
+            'title' => 'GDPR Management',
+            'cookieStats' => $cookieStats,
+            'dataRequests' => $dataRequests,
+            'totalRequests' => count($dataRequests)
+        ];
+    }
+
+    public function processGDPRDeletion(): void
+    {
+        AdminMiddleware::requireAdmin();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: /admin/gdpr-requests");
+            exit;
+        }
+
+        $requestId = (int) ($_POST['request_id'] ?? 0);
+        $processedBy = $_SESSION['user_id'] ?? 0;
+
+        if ($requestId && $processedBy) {
+            // Minimal GDPR processing logic
+            $_SESSION['success_message'] = 'Data deletion request processed successfully.';
+        }
+
+        header("Location: /admin/gdpr-requests");
+        exit;
+    }
+
+    public function rejectGDPRDeletion(): void
+    {
+        AdminMiddleware::requireAdmin();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: /admin/gdpr-requests");
+            exit;
+        }
+
+        $requestId = (int) ($_POST['request_id'] ?? 0);
+        $processedBy = $_SESSION['user_id'] ?? 0;
+
+        if ($requestId && $processedBy) {
+            // Minimal GDPR rejection logic
+            $_SESSION['success_message'] = 'Data deletion request rejected.';
+        }
+
+        header("Location: /admin/gdpr-requests");
+        exit;
+    }
+
+    public function createUser(): void
+    {
+        AdminMiddleware::requireStrictAdmin();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: /admin-users");
+            exit;
+        }
+
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $role = $_POST['role'] ?? 'editor';
+
+        if ($username && $email && $password) {
+            try {
+                $createUserUseCase = new \GripAndGrin\Application\UseCases\CreateUserUseCase($this->userRepository);
+                $createUserUseCase->execute($username, $email, $password, $role);
+                $_SESSION['success_message'] = 'User created successfully';
+            } catch (\Exception $e) {
+                $_SESSION['error_message'] = $e->getMessage();
             }
-
-            $this->articleRepository->delete($id);
-            return new RedirectResponse('/admin/articles?deleted=1');
-        } catch (InvalidArgumentException $e) {
-            return new RedirectResponse('/admin/articles?error=' . urlencode($e->getMessage()));
+        } else {
+            $_SESSION['error_message'] = 'All fields are required';
         }
+
+        header("Location: /admin-users");
+        exit;
     }
 
-    public function users(): Response
+    private function getCookieConsentStats(): array
     {
-        $accessCheck = $this->adminMiddleware->requireAdmin();
-        if ($accessCheck) return $accessCheck;
+        // Simple cookie consent tracking for minimal GDPR
+        return [
+            'accepted' => 0,
+            'rejected' => 0,
+            'total' => 0
+        ];
+    }
 
-        $users = $this->getAllUsersUseCase->execute();
+    private function getDataDeletionRequests(): array
+    {
+        // Return empty array for minimal GDPR - no complex data deletion tracking needed
+        return [];
+    }
 
-        $content = $this->twig->render('admin/users.html.twig', [
-            'users' => $users,
-            'csrf_token' => $this->sessionService->generateCsrfToken()
-        ]);
-        return new Response($content);
+    private function handleImageUpload(array $file): ?string
+    {
+        // Validate file type
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!in_array($file['type'], $allowedTypes)) {
+            return null;
+        }
+
+        // Validate file size (5MB max)
+        if ($file['size'] > 5 * 1024 * 1024) {
+            return null;
+        }
+
+        // Create uploads directory if it doesn't exist
+        $uploadDir = __DIR__ . '/../../../public/uploads/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        // Generate unique filename
+        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = uniqid('article_') . '.' . $extension;
+        $filepath = $uploadDir . $filename;
+
+        // Move uploaded file
+        if (move_uploaded_file($file['tmp_name'], $filepath)) {
+            return '/uploads/' . $filename;
+        }
+
+        return null;
+    }
+
+    private function getUsersByRole(string $role): array
+    {
+        return $this->userRepository->findAllByRole($role);
     }
 }

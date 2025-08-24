@@ -3,118 +3,155 @@ declare(strict_types=1);
 
 namespace GripAndGrin\Presentation\Controllers;
 
-use GripAndGrin\Application\UseCases\GetUserProfileUseCase;
-use GripAndGrin\Application\UseCases\UpdateUserProfileUseCase;
-use GripAndGrin\Infrastructure\Services\SessionService;
+use PDO;
+use GripAndGrin\Infrastructure\Repositories\PDOUserRepository;
+use GripAndGrin\Application\UseCases\ChangePasswordUseCase;
+use GripAndGrin\Application\UseCases\UpdateEmailUseCase;
 use InvalidArgumentException;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Twig\Environment;
 
 class ProfileController
 {
-    public function __construct(
-        private readonly Environment $twig,
-        private readonly SessionService $sessionService,
-        private readonly GetUserProfileUseCase $getUserProfileUseCase,
-        private readonly UpdateUserProfileUseCase $updateUserProfileUseCase
-    ) {}
+    private PDO $db;
+    private PDOUserRepository $userRepository;
+    private ChangePasswordUseCase $changePasswordUseCase;
+    private UpdateEmailUseCase $updateEmailUseCase;
 
-    public function show(): Response
+    public function __construct(PDO $db)
     {
-        if (!$this->sessionService->isLoggedIn()) {
-            return new RedirectResponse('/login');
-        }
-
-        $userId = $this->sessionService->getCurrentUserId();
-
-        try {
-            $user = $this->getUserProfileUseCase->execute($userId);
-
-            $content = $this->twig->render('profile/show.html.twig', [
-                'user' => $user,
-                'csrf_token' => $this->sessionService->generateCsrfToken()
-            ]);
-            return new Response($content);
-        } catch (InvalidArgumentException $e) {
-            return new RedirectResponse('/login');
-        }
+        $this->db = $db;
+        $this->userRepository = new PDOUserRepository($db);
+        $this->changePasswordUseCase = new ChangePasswordUseCase($this->userRepository);
+        $this->updateEmailUseCase = new UpdateEmailUseCase($this->userRepository);
     }
 
-    public function edit(): Response
+    public function show(): array
     {
-        if (!$this->sessionService->isLoggedIn()) {
-            return new RedirectResponse('/login');
+        // Check if user is logged in
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
         }
 
-        $userId = $this->sessionService->getCurrentUserId();
+        // Get user data
+        $user = $this->userRepository->findById((int) $_SESSION['user_id']);
 
-        try {
-            $user = $this->getUserProfileUseCase->execute($userId);
-
-            $content = $this->twig->render('profile/edit.html.twig', [
-                'user' => $user,
-                'csrf_token' => $this->sessionService->generateCsrfToken()
-            ]);
-            return new Response($content);
-        } catch (InvalidArgumentException $e) {
-            return new RedirectResponse('/login');
+        if (!$user) {
+            session_destroy();
+            header('Location: /login');
+            exit;
         }
+
+        $data = [
+            'user' => [
+                'id' => $user->getId(),
+                'username' => $user->getUsername(),
+                'email' => $user->getEmail(),
+                'role' => $user->getRole(),
+                'fullName' => $user->getFullName(),
+                'createdAt' => $user->getCreatedAt(),
+                'isActive' => $user->isActive(),
+                'isAdmin' => $user->isAdmin()
+            ],
+            'title' => 'Profile - ' . $user->getUsername()
+        ];
+
+        // Add flash messages if they exist
+        if (isset($_SESSION['flash']['success'])) {
+            $data['success'] = $_SESSION['flash']['success'];
+            unset($_SESSION['flash']['success']);
+        }
+
+        if (isset($_SESSION['flash']['error'])) {
+            $data['error'] = $_SESSION['flash']['error'];
+            unset($_SESSION['flash']['error']);
+        }
+
+        return $data;
     }
 
-    public function update(Request $request): Response
+    public function adminProfile(): array
     {
-        if (!$this->sessionService->isLoggedIn()) {
-            return new RedirectResponse('/login');
+        // Check if user is admin/editor
+        if (!isset($_SESSION['user_id']) || !isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
+            header('Location: /login');
+            exit;
         }
 
-        if ($request->getMethod() !== 'POST') {
-            return new RedirectResponse('/profile/edit');
+        $user = $this->userRepository->findById((int) $_SESSION['user_id']);
+
+        if (!$user || !$user->isEditor()) {
+            header('Location: /login');
+            exit;
         }
 
-        $userId = $this->sessionService->getCurrentUserId();
-        $username = $request->request->get('username', '');
-        $email = $request->request->get('email', '');
-        $firstName = $request->request->get('first_name', '');
-        $lastName = $request->request->get('last_name', '');
-        $bio = $request->request->get('bio', '');
-        $csrfToken = $request->request->get('csrf_token', '');
+        return [
+            'user' => $user,
+            'title' => 'My Profile - ' . $user->getFullName()
+        ];
+    }
+
+    public function changePassword(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /admin-profile');
+            exit;
+        }
+
+        if (!isset($_SESSION['user_id']) || !isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
+            header('Location: /login');
+            exit;
+        }
+
+        $currentPassword = $_POST['current_password'] ?? '';
+        $newPassword = $_POST['new_password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
 
         try {
-            // Validate CSRF token
-            if (!$this->sessionService->validateCsrfToken($csrfToken)) {
-                throw new InvalidArgumentException('Invalid security token');
+            if ($newPassword !== $confirmPassword) {
+                throw new InvalidArgumentException('New passwords do not match');
             }
 
-            $user = $this->updateUserProfileUseCase->execute(
-                $userId,
-                $username,
-                $email,
-                $firstName ?: null,
-                $lastName ?: null,
-                $bio ?: null
+            $this->changePasswordUseCase->execute(
+                (int) $_SESSION['user_id'],
+                $currentPassword,
+                $newPassword
             );
 
-            // Update session data
-            $_SESSION['username'] = $user->getUsername();
-            $_SESSION['email'] = $user->getEmail();
-
-            return new RedirectResponse('/profile?updated=1');
+            $_SESSION['flash']['success'] = 'Password changed successfully';
         } catch (InvalidArgumentException $e) {
-            $user = $this->getUserProfileUseCase->execute($userId);
-
-            $content = $this->twig->render('profile/edit.html.twig', [
-                'error' => $e->getMessage(),
-                'user' => $user,
-                'username' => $username,
-                'email' => $email,
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'bio' => $bio,
-                'csrf_token' => $this->sessionService->generateCsrfToken()
-            ]);
-            return new Response($content, 400);
+            $_SESSION['flash']['error'] = $e->getMessage();
         }
+
+        header('Location: /admin-profile');
+        exit;
+    }
+
+    public function updateEmail(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: /admin-profile');
+            exit;
+        }
+
+        if (!isset($_SESSION['user_id']) || !isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
+            header('Location: /login');
+            exit;
+        }
+
+        $newEmail = $_POST['email'] ?? '';
+
+        try {
+            $this->updateEmailUseCase->execute(
+                (int) $_SESSION['user_id'],
+                $newEmail
+            );
+
+            $_SESSION['flash']['success'] = 'Email address updated successfully';
+        } catch (InvalidArgumentException $e) {
+            $_SESSION['flash']['error'] = $e->getMessage();
+        }
+
+        header('Location: /admin-profile');
+        exit;
     }
 }

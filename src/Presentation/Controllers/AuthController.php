@@ -1,129 +1,149 @@
 <?php
+
 declare(strict_types=1);
 
 namespace GripAndGrin\Presentation\Controllers;
 
 use GripAndGrin\Application\UseCases\AuthenticateUserUseCase;
-use GripAndGrin\Application\UseCases\RegisterUserUseCase;
-use GripAndGrin\Infrastructure\Services\SessionService;
-use InvalidArgumentException;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Twig\Environment;
+use GripAndGrin\Infrastructure\Repositories\PDOUserRepository;
+use PDO;
 
 class AuthController
 {
-    public function __construct(
-        private readonly Environment $twig,
-        private readonly AuthenticateUserUseCase $authenticateUserUseCase,
-        private readonly RegisterUserUseCase $registerUserUseCase,
-        private readonly SessionService $sessionService
-    ) {}
+    private AuthenticateUserUseCase $authenticateUserUseCase;
+    private int $maxLoginAttempts = 5;
+    private int $lockoutTime = 900; // 15 minutes
 
-    public function showLogin(): Response
+    public function __construct(PDO $pdo)
     {
-        if ($this->sessionService->isLoggedIn()) {
-            return new RedirectResponse('/');
-        }
-
-        $content = $this->twig->render('auth/login.html.twig', [
-            'csrf_token' => $this->sessionService->generateCsrfToken()
-        ]);
-        return new Response($content);
+        $userRepository = new PDOUserRepository($pdo);
+        $this->authenticateUserUseCase = new AuthenticateUserUseCase($userRepository);
     }
 
-    public function login(Request $request): Response
+    public function showLogin(): array
     {
-        if ($this->sessionService->isLoggedIn()) {
-            return new RedirectResponse('/');
+        if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
+            header("Location: /admin-dashboard");
+            exit;
         }
 
-        if ($request->getMethod() !== 'POST') {
-            return new RedirectResponse('/login');
+        if (!isset($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
 
-        $email = $request->request->get('email', '');
-        $password = $request->request->get('password', '');
-        $csrfToken = $request->request->get('csrf_token', '');
-
-        try {
-            // Validate CSRF token
-            if (!$this->sessionService->validateCsrfToken($csrfToken)) {
-                throw new InvalidArgumentException('Invalid security token');
-            }
-
-            $user = $this->authenticateUserUseCase->execute($email, $password);
-            $this->sessionService->login($user);
-
-            return new RedirectResponse('/');
-        } catch (InvalidArgumentException $e) {
-            $content = $this->twig->render('auth/login.html.twig', [
-                'error' => $e->getMessage(),
-                'email' => $email,
-                'csrf_token' => $this->sessionService->generateCsrfToken()
-            ]);
-            return new Response($content, 400);
-        }
+        return [
+            'title' => 'Admin Login - Grip & Grin',
+            'error' => $_SESSION['flash']['error'] ?? null,
+            'csrf_token' => $_SESSION['csrf_token']
+        ];
     }
 
-    public function showRegister(): Response
+    public function login(): array
     {
-        if ($this->sessionService->isLoggedIn()) {
-            return new RedirectResponse('/');
+        if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return $this->showLogin();
         }
 
-        $content = $this->twig->render('auth/register.html.twig', [
-            'csrf_token' => $this->sessionService->generateCsrfToken()
-        ]);
-        return new Response($content);
+        if (!$this->validateCsrfToken($_POST['csrf_token'] ?? '')) {
+            return [
+                'title' => 'Admin Login - Grip & Grin',
+                'error' => 'Invalid security token. Please try again.',
+                'csrf_token' => $_SESSION['csrf_token']
+            ];
+        }
+
+        if ($this->isRateLimited()) {
+            return [
+                'title' => 'Admin Login - Grip & Grin',
+                'error' => 'Too many login attempts. Please try again in 15 minutes.',
+                'csrf_token' => $_SESSION['csrf_token']
+            ];
+        }
+
+        $emailOrUsername = filter_var(trim($_POST['email'] ?? $_POST['email_or_username'] ?? ''), FILTER_SANITIZE_EMAIL);
+        $password = $_POST['password'] ?? '';
+
+        if (empty($emailOrUsername) || empty($password)) {
+            $this->recordFailedAttempt();
+            return [
+                'title' => 'Admin Login - Grip & Grin',
+                'error' => 'Please enter both email/username and password',
+                'email' => $emailOrUsername,
+                'csrf_token' => $_SESSION['csrf_token']
+            ];
+        }
+
+        $user = $this->authenticateUserUseCase->execute($emailOrUsername, $password);
+
+        if (!$user) {
+            $this->recordFailedAttempt();
+            error_log("[v0] Login failed for: " . $emailOrUsername);
+            return [
+                'title' => 'Admin Login - Grip & Grin',
+                'error' => 'Invalid credentials',
+                'email_or_username' => $emailOrUsername,
+                'csrf_token' => $_SESSION['csrf_token']
+            ];
+        }
+
+        if (!$user->isAdmin() && $user->getRole() !== 'editor') {
+            return [
+                'title' => 'Admin Login - Grip & Grin',
+                'error' => 'Access denied. Admin or editor privileges required.',
+                'csrf_token' => $_SESSION['csrf_token']
+            ];
+        }
+
+        session_regenerate_id(true);
+
+        $_SESSION['logged_in'] = true;
+        $_SESSION['user_id'] = $user->getId();
+        $_SESSION['username'] = $user->getUsername();
+        $_SESSION['role'] = $user->getRole();
+        $_SESSION['is_admin'] = $user->isAdmin();
+
+        unset($_SESSION['failed_attempts'], $_SESSION['last_attempt_time']);
+
+        error_log("[v0] Login successful, redirecting to admin dashboard");
+        header("Location: /admin-dashboard");
+        exit;
     }
 
-    public function register(Request $request): Response
+    public function logout(): void
     {
-        if ($this->sessionService->isLoggedIn()) {
-            return new RedirectResponse('/');
+        $_SESSION = [];
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000,
+                $params["path"], $params["domain"],
+                $params["secure"], $params["httponly"]
+            );
         }
-
-        if ($request->getMethod() !== 'POST') {
-            return new RedirectResponse('/register');
-        }
-
-        $username = $request->request->get('username', '');
-        $email = $request->request->get('email', '');
-        $password = $request->request->get('password', '');
-        $confirmPassword = $request->request->get('confirm_password', '');
-        $csrfToken = $request->request->get('csrf_token', '');
-
-        try {
-            // Validate CSRF token
-            if (!$this->sessionService->validateCsrfToken($csrfToken)) {
-                throw new InvalidArgumentException('Invalid security token');
-            }
-
-            // Validate password confirmation
-            if ($password !== $confirmPassword) {
-                throw new InvalidArgumentException('Passwords do not match');
-            }
-
-            $user = $this->registerUserUseCase->execute($username, $email, $password);
-            $this->sessionService->login($user);
-
-            return new RedirectResponse('/');
-        } catch (InvalidArgumentException $e) {
-            $content = $this->twig->render('auth/register.html.twig', [
-                'error' => $e->getMessage(),
-                'username' => $username,
-                'email' => $email,
-                'csrf_token' => $this->sessionService->generateCsrfToken()
-            ]);
-            return new Response($content, 400);
-        }
+        session_destroy();
+        header("Location: /");
+        exit;
     }
 
-    public function logout(): Response
+    private function validateCsrfToken(string $token): bool
     {
-        $this->sessionService->logout();
-        return new RedirectResponse('/');
+        return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+    }
+
+    private function isRateLimited(): bool
+    {
+        $attempts = $_SESSION['failed_attempts'] ?? 0;
+        $lastAttempt = $_SESSION['last_attempt_time'] ?? 0;
+
+        if ($attempts >= $this->maxLoginAttempts) {
+            return (time() - $lastAttempt) < $this->lockoutTime;
+        }
+
+        return false;
+    }
+
+    private function recordFailedAttempt(): void
+    {
+        $_SESSION['failed_attempts'] = ($_SESSION['failed_attempts'] ?? 0) + 1;
+        $_SESSION['last_attempt_time'] = time();
     }
 }

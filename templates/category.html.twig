@@ -1,64 +1,210 @@
 {% extends "base.html.twig" %}
 
-{% block title %}{{ category.name }} | {{ parent() }}{% endblock %}
+{% block title %}{{ category.name }} - Grip & Grin{% endblock %}
 
 {% block content %}
+<style>
+.category-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding: 2rem 1rem;
+}
+
+.category-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 1rem;
+}
+
+.category-description {
+    font-size: 1.25rem;
+    color: #666666;
+}
+
+.articles-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.articles-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.article-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: box-shadow 0.3s ease;
+    border: 1px solid #e5e5e5;
+}
+
+.article-card:hover {
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.article-image {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+}
+
+.article-content {
+    padding: 1.5rem;
+}
+
+.article-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+
+.article-date {
+    font-size: 0.875rem;
+    color: #666666;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.article-excerpt {
+    color: #333333;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+.read-more-btn {
+    display: inline-block;
+    background: #000000;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+.read-more-btn:hover {
+    background: #333333;
+}
+
+.no-articles {
+    text-align: center;
+    padding: 3rem 1rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e5e5e5;
+}
+
+.no-articles-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 1rem;
+}
+
+.no-articles-text {
+    color: #666666;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 3rem;
+}
+
+.pagination-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: 2px solid #cccccc;
+    background: #f8f8f8;
+    color: #333333;
+}
+
+.pagination-btn:hover {
+    background: #000000;
+    color: white;
+    border-color: #000000;
+}
+
+.page-info {
+    padding: 0.75rem 1rem;
+    background: #000000;
+    color: white;
+    border-radius: 6px;
+    font-weight: 500;
+}
+</style>
+
+<main>
     <div class="category-header">
-        <h1>{{ category.name }}</h1>
+        <h1 class="category-title">{{ category.name }}</h1>
         {% if category.description %}
             <p class="category-description">{{ category.description }}</p>
         {% endif %}
     </div>
 
-    {% if articles|length > 0 %}
-        <section class="article-list">
+    <div class="articles-container">
+        {% if articles %}
+        <div class="articles-list">
             {% for article in articles %}
-                <article class="article-summary">
-                    {% if article.hasFeaturedImage %}
-                        <div class="article-image">
-                            <a href="/article/{{ article.slug }}">
-                                <picture>
-                                    <source srcset="{{ article.featuredImage.thumbnailPath }}" type="image/webp">
-                                    <img src="{{ article.featuredImage.thumbnailPath|replace({'.webp': '.jpg'}) }}"
-                                         alt="{{ article.featuredImage.altText }}"
-                                         class="article-thumbnail"
-                                         loading="lazy">
-                                </picture>
-                            </a>
-                        </div>
+            <article class="article-card">
+                {% if article.imageThumbnailPath or article.featuredImage %}
+                <img src="{{ article.imageThumbnailPath ?: article.featuredImage }}" 
+                     alt="{{ article.imageAltText ?: article.title }}" 
+                     class="article-image">
+                {% endif %}
+                
+                <div class="article-content">
+                    <h2 class="article-title">{{ article.title }}</h2>
+                    
+                    {% if article.publishedAt %}
+                    <time class="article-date">
+                        Published on {{ article.publishedAt|date('F j, Y') }}
+                    </time>
                     {% endif %}
-
-                    <div class="article-content">
-                        <h2 class="article-title">
-                            <a href="/article/{{ article.slug }}">{{ article.title }}</a>
-                        </h2>
-                        <p class="article-excerpt">{{ article.content|striptags|slice(0, 150) }}...</p>
-                        <div class="article-meta">
-                            <span>Published on {{ article.publishedAt|date("F j, Y") }}</span>
-                            <a href="/article/{{ article.slug }}" class="read-more">Read More &rarr;</a>
-                        </div>
-                    </div>
-                </article>
+                    
+                    <p class="article-excerpt">{{ article.excerpt }}</p>
+                    
+                    <a href="/article/{{ article.slug }}" class="read-more-btn">
+                        Read More →
+                    </a>
+                </div>
+            </article>
             {% endfor %}
-        </section>
+        </div>
+        {% else %}
+        <div class="no-articles">
+            <h2 class="no-articles-title">No articles found</h2>
+            <p class="no-articles-text">No articles in this category yet. Check back later!</p>
+        </div>
+        {% endif %}
 
         {% if totalPages > 1 %}
-            <nav class="pagination">
-                {% if hasPreviousPage %}
-                    <a href="/category/{{ category.slug }}?page={{ previousPage }}" class="pagination-link pagination-prev">← Previous</a>
-                {% endif %}
-
-                <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
-
-                {% if hasNextPage %}
-                    <a href="/category/{{ category.slug }}?page={{ nextPage }}" class="pagination-link pagination-next">Next →</a>
-                {% endif %}
-            </nav>
+        <nav class="pagination">
+            {% if hasPreviousPage %}
+            <a href="/category/{{ category.slug }}?page={{ previousPage }}" class="pagination-btn">← Previous</a>
+            {% endif %}
+            
+            <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+            
+            {% if hasNextPage %}
+            <a href="/category/{{ category.slug }}?page={{ nextPage }}" class="pagination-btn">Next →</a>
+            {% endif %}
+        </nav>
         {% endif %}
-    {% else %}
-        <div class="no-articles">
-            <p>No articles found in this category yet.</p>
-            <a href="/" class="back-link">← Back to all articles</a>
-        </div>
-    {% endif %}
+    </div>
+</main>
 {% endblock %}

@@ -50,16 +50,27 @@ class Image
         return $this->originalHeight;
     }
 
-    public function toArray(): array
+    public function getAspectRatio(): float
     {
-        return [
-            'original' => $this->originalPath,
-            'thumbnail' => $this->thumbnailPath,
-            'medium' => $this->mediumPath,
-            'full' => $this->fullPath,
-            'alt' => $this->altText,
-            'width' => $this->originalWidth,
-            'height' => $this->originalHeight,
-        ];
+        if ($this->originalHeight === 0) {
+            return 1.0;
+        }
+        
+        return $this->originalWidth / $this->originalHeight;
+    }
+
+    public function isLandscape(): bool
+    {
+        return $this->originalWidth > $this->originalHeight;
+    }
+
+    public function isPortrait(): bool
+    {
+        return $this->originalHeight > $this->originalWidth;
+    }
+
+    public function isSquare(): bool
+    {
+        return $this->originalWidth === $this->originalHeight;
     }
 }

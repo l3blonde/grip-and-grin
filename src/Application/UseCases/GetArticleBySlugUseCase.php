@@ -3,19 +3,21 @@ declare(strict_types=1);
 
 namespace GripAndGrin\Application\UseCases;
 
-use GripAndGrin\Domain\Entities\Article;
 use GripAndGrin\Domain\Interfaces\ArticleRepositoryInterface;
 
 class GetArticleBySlugUseCase
 {
-    public function __construct(private readonly ArticleRepositoryInterface $articleRepository)
+    private ArticleRepositoryInterface $articleRepository;
+
+    public function __construct(ArticleRepositoryInterface $articleRepository)
     {
+        $this->articleRepository = $articleRepository;
     }
 
     public function execute(string $slug): array
     {
         $article = $this->articleRepository->findBySlug($slug);
-
+        
         if (!$article) {
             return [
                 'article' => null,
@@ -28,9 +30,26 @@ class GetArticleBySlugUseCase
         $previousArticle = $this->articleRepository->findPreviousArticle($article);
 
         return [
-            'article' => $article,
-            'nextArticle' => $nextArticle,
-            'previousArticle' => $previousArticle
+            'article' => [
+                'id' => $article->getId(),
+                'title' => $article->getTitle(),
+                'slug' => $article->getSlug(),
+                'content' => $article->getContent(),
+                'excerpt' => $article->getDisplayExcerpt(),
+                'publishedAt' => $article->getPublishedAt(),
+                'featuredImage' => $article->getFeaturedImage(),
+                'imageThumbnailPath' => $article->getImageThumbnailPath(),
+                'imageFullPath' => $article->getImageFullPath(),
+                'imageAltText' => $article->getImageAltText()
+            ],
+            'nextArticle' => $nextArticle ? [
+                'title' => $nextArticle->getTitle(),
+                'slug' => $nextArticle->getSlug()
+            ] : null,
+            'previousArticle' => $previousArticle ? [
+                'title' => $previousArticle->getTitle(),
+                'slug' => $previousArticle->getSlug()
+            ] : null
         ];
     }
 }

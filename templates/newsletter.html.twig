@@ -1,0 +1,99 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Subscribe | Grip & Grin{% endblock %}
+
+{% block content %}
+    <style>
+        .newsletter-container {
+            max-width: 500px;
+            margin: 80px auto;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+        .newsletter-header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 16px;
+        }
+
+        .newsletter-header p {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 40px;
+            line-height: 1.5;
+        }
+
+        .newsletter-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .form-group input {
+            padding: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #000;
+        }
+
+        .subscribe-button {
+            padding: 16px;
+            background: #000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .subscribe-button:hover {
+            background: #333;
+        }
+
+        .back-home {
+            margin-top: 40px;
+        }
+
+        .back-home a {
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-home a:hover {
+            text-decoration: underline;
+        }
+    </style>
+
+    <div class="newsletter-container">
+        <div class="newsletter-header">
+            <h1>Stay Updated</h1>
+            <p>Get the latest classic car news, reviews, and collector insights delivered to your inbox.</p>
+        </div>
+
+        <form class="newsletter-form" action="#" method="POST">
+            <div class="form-group">
+                <input type="email" name="email" placeholder="Enter your email address" required>
+            </div>
+
+            <button type="submit" class="subscribe-button">Subscribe to Newsletter</button>
+        </form>
+
+        <div class="back-home">
+            <a href="/">← Back to Home</a>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Privacy Policy - Grip & Grin Classic Cars{% endblock %}
+
+{% block content %}
+    <style>
+        /* Privacy Policy Styling - Black, White, Grey only */
+        .privacy-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .privacy-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #000;
+        }
+
+        .privacy-header h1 {
+            font-size: 32px;
+            font-weight: bold;
+            color: #000;
+            margin: 0 0 10px 0;
+        }
+
+        .privacy-last-updated {
+            font-size: 14px;
+            color: #666;
+            font-weight: normal;
+        }
+
+        .privacy-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-left: 4px solid #000;
+        }
+
+        .privacy-section h2 {
+            font-size: 20px;
+            font-weight: bold;
+            color: #000;
+            margin: 0 0 15px 0;
+        }
+
+        .privacy-section p {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+
+        .privacy-section ul {
+            margin: 0 0 15px 20px;
+            padding: 0;
+        }
+
+        .privacy-section li {
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .privacy-section strong {
+            color: #000;
+            font-weight: bold;
+        }
+
+        .highlight-box {
+            background: #e8e8e8;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+
+        .contact-info {
+            background: #000;
+            color: white;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .contact-info strong {
+            color: white;
+        }
+    </style>
+
+    <div class="privacy-container">
+        <div class="privacy-header">
+            <h1>Privacy Policy</h1>
+            <p class="privacy-last-updated"><strong>Last updated:</strong> {{ "now"|date("F j, Y") }}</p>
+        </div>
+
+        <div class="privacy-section">
+            <h2>1. What We Actually Collect</h2>
+            <p><strong>Grip & Grin is a read-only classic car news website.</strong> We collect very minimal information:</p>
+
+            <div class="highlight-box">
+                <p><strong>For Regular Visitors (99% of users):</strong></p>
+                <ul>
+                    <li>Anonymous page views and reading time</li>
+                    <li>Essential cookies for website functionality</li>
+                    <li><strong>NO personal information, NO email addresses, NO user accounts</strong></li>
+                </ul>
+            </div>
+
+            <p><strong>For Admin/Editor Staff Only:</strong></p>
+            <ul>
+                <li>Username and email address (for login purposes)</li>
+                <li>Password (encrypted and stored securely)</li>
+                <li>Optional: First name, last name, bio</li>
+            </ul>
+        </div>
+
+        <div class="privacy-section">
+            <h2>2. How We Use This Information</h2>
+            <ul>
+                <li><strong>Website Analytics:</strong> Understand which articles are popular</li>
+                <li><strong>Admin Access:</strong> Allow editors to publish and manage articles</li>
+                <li><strong>Website Functionality:</strong> Essential cookies for proper site operation</li>
+            </ul>
+            <p><strong>We do NOT:</strong> Send newsletters, collect contact forms, or create user accounts for readers.</p>
+        </div>
+
+        <div class="privacy-section">
+            <h2>3. Cookies We Use</h2>
+            <ul>
+                <li><strong>Essential Cookies:</strong> Required for website to work properly</li>
+                <li><strong>Analytics Cookies:</strong> Anonymous data about page visits (you can reject these)</li>
+                <li><strong>Admin Session Cookies:</strong> Keep editors logged in (admin accounts only)</li>
+            </ul>
+        </div>
+
+        <div class="privacy-section">
+            <h2>4. Data Sharing</h2>
+            <p>We do NOT sell or share your information. Limited sharing only with:</p>
+            <ul>
+                <li><strong>Hosting Provider (Linode EU):</strong> Technical data for website hosting</li>
+                <li><strong>Analytics (if enabled):</strong> Anonymous usage statistics only</li>
+                <li><strong>Legal Requirements:</strong> Only if required by law</li>
+            </ul>
+        </div>
+
+        <div class="privacy-section">
+            <h2>5. Your Rights (GDPR Compliance)</h2>
+            <p><strong>For Regular Visitors:</strong> Since we don't collect your personal data, your main rights are:</p>
+            <ul>
+                <li>Reject analytics cookies (use our cookie banner)</li>
+                <li>Stop visiting our website</li>
+                <li>Contact us if you believe we have your data</li>
+            </ul>
+
+            <p><strong>For Admin/Editor Accounts:</strong> Full GDPR rights including data access, correction, deletion, and export.</p>
+        </div>
+
+        <div class="contact-info">
+            <h2>6. Contact Us</h2>
+            <p><strong>Privacy Questions:</strong> privacy@gripandgrin.org</p>
+            <p><strong>Response Time:</strong> Within 30 days (GDPR requirement)</p>
+        </div>
+
+        <div class="privacy-section">
+            <h2>7. Policy Updates</h2>
+            <p>We may update this policy occasionally. Changes will be posted here with a new date.</p>
+        </div>
+    </div>
+{% endblock %}

@@ -3,362 +3,516 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Grip & Grin{% endblock %}</title>
-
-    <!-- Preconnect to external domains -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="dns-prefetch" href="//images.unsplash.com">
-
-    <!-- Load CSS in correct order - Base styles first, then components, then layout -->
-    <link rel="stylesheet" href="/css/base.css">
-    <link rel="stylesheet" href="/css/components.css">
-    <link rel="stylesheet" href="/css/layout.css">
-    <link rel="stylesheet" href="/css/breakpoints.css">
-    <link rel="stylesheet" href="/css/grid-system.css">
-    <link rel="stylesheet" href="/css/performance.css">
-    <link rel="stylesheet" href="/css/admin.css">
-
-    <!-- Load fonts with font-display: swap -->
-    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
-
-    <link rel="icon" href="/logo.svg" type="image/svg+xml">
+    <title>{% block title %}Grip & Grin - Classic Car Magazine{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="/logo.svg">
 </head>
-<body>
-<div class="container">
-    <!-- Main Header - Logo, Search, User -->
-    <header class="site-header">
+<body{% if user_id %} data-user-id="{{ user_id }}"{% endif %}>
+<header class="header">
+    <div class="container">
         <div class="header-content">
+            <!-- Burger Menu -->
+            <button class="mobile-menu-button" aria-expanded="false" aria-controls="mobile-nav" aria-label="Toggle navigation menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+
             <!-- Logo -->
-            <a href="/" class="logo">
-                <img src="/logo.svg" alt="Grip & Grin Logo" class="logo-svg" loading="eager">
-                <span class="logo-text">Grip &amp; Grin</span>
-            </a>
+            <div class="logo">
+                <a href="/" class="logo-link">
+                    <span class="logo-text">Grip & Grin</span>
+                </a>
+            </div>
 
-            <!-- Search Form -->
-            <form class="search-form" action="/search" method="GET" role="search">
-                <input type="text"
-                       name="q"
-                       placeholder="Search articles..."
-                       class="search-input"
-                       value="{{ app.request.query.get('q') }}"
-                       aria-label="Search articles">
-                <button type="submit" class="search-button" aria-label="Search">
-                    {{ icon('search', 'icon small') }}
-                </button>
-            </form>
-
-            <!-- Desktop User Navigation -->
-            <div class="desktop-user-nav">
-                {% if session.isLoggedIn %}
+            <!-- Auth Section -->
+            <div class="auth-section">
+                {% if session.logged_in %}
                     <div class="user-dropdown">
-                        <button class="user-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
-                            <div class="user-avatar">
-                                {{ icon('user', 'icon small') }}
-                            </div>
-                            <span class="user-welcome">{{ session.currentUsername }}</span>
-                            <div class="dropdown-arrow">
-                                {{ icon('chevron-down', 'icon small') }}
-                            </div>
+                        <button class="user-button" aria-expanded="false" aria-haspopup="true">
+                            <div class="user-avatar">{{ session.username|first|upper }}</div>
+                            <span class="user-name">{{ session.username }}</span>
                         </button>
-                        <div class="user-dropdown-menu" role="menu">
-                            <a href="/profile" class="dropdown-item" role="menuitem">
-                                {{ icon('user', 'icon small') }}
-                                Profile
-                            </a>
-                            {% if session.canCurrentUserManageArticles %}
-                                <a href="/admin/dashboard" class="dropdown-item" role="menuitem">
-                                    {{ icon('admin', 'icon small') }}
-                                    Admin Dashboard
-                                </a>
+                        <div class="dropdown-menu">
+                            {% if session.is_admin %}
+                                <a href="/admin-dashboard" class="dropdown-item">Admin Panel</a>
                             {% endif %}
-                            <div class="dropdown-divider"></div>
-                            <a href="/logout" class="dropdown-item logout" role="menuitem">
-                                {{ icon('logout', 'icon small') }}
-                                Logout
-                            </a>
+                            <a href="/logout" class="dropdown-item">Logout</a>
                         </div>
                     </div>
                 {% else %}
-                    <div class="auth-links">
-                        <a href="/login" class="auth-button login">
-                            {{ icon('login', 'icon small') }}
-                            Login
-                        </a>
-                        <a href="/register" class="auth-button register">
-                            {{ icon('register', 'icon small') }}
-                            Register
-                        </a>
-                    </div>
+                    <!-- Added subscribe button as requested -->
+                    <a href="/newsletter" class="btn btn-primary">Subscribe</a>
                 {% endif %}
             </div>
+        </div>
+    </div>
 
-            <!-- Mobile Hamburger Menu -->
-            <button class="hamburger mobile-only" aria-expanded="false" aria-controls="mobile-menu" aria-label="Toggle navigation menu">
-                    <span class="hamburger-icon">
-                        {{ icon('menu', 'icon') }}
-                    </span>
-            </button>
+    <!-- Subheader with category navigation -->
+    <div class="subheader">
+        <div class="container">
+            <nav class="category-nav">
+                <a href="/" class="category-link">LATEST</a>
+                <a href="/category/classics" class="category-link">CLASSICS</a>
+                <a href="/category/collector" class="category-link">COLLECTOR</a>
+                <a href="/category/reviews" class="category-link">REVIEWS</a>
+                <a href="/category/trends" class="category-link">TRENDS</a>
+            </nav>
+        </div>
+    </div>
+</header>
+
+<!-- Mobile sidebar -->
+<nav class="mobile-sidebar" id="mobile-nav">
+    <div class="sidebar-content">
+        <!-- Search form at the top -->
+        <div class="mobile-search">
+            <form action="/search" method="GET" class="search-form">
+                <input type="text" name="q" placeholder="Search articles..." class="search-input" value="{{ searchQuery ?? '' }}">
+                <button type="submit" class="search-button">Search</button>
+            </form>
         </div>
 
-        <!-- Mobile Navigation Menu (hidden by default) -->
-        <div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Mobile navigation">
-            <div class="mobile-menu-content">
-                <!-- Mobile Categories -->
-                <div class="mobile-section">
-                    <h3 class="mobile-section-title">Categories</h3>
-                    <div class="mobile-category-grid">
-                        <a href="/" class="mobile-category-item active">
-                            {{ icon('home', 'icon small') }}
-                            All Articles
-                        </a>
-                        <a href="/category/classics" class="mobile-category-item">
-                            {{ icon('star', 'icon small') }}
-                            Classics
-                        </a>
-                        <a href="/category/collector" class="mobile-category-item">
-                            {{ icon('heart', 'icon small') }}
-                            Collector
-                        </a>
-                        <a href="/category/reviews" class="mobile-category-item">
-                            {{ icon('eye', 'icon small') }}
-                            Reviews
-                        </a>
-                        <a href="/category/trends" class="mobile-category-item">
-                            {{ icon('arrow-right', 'icon small') }}
-                            Trends
-                        </a>
-                    </div>
-                </div>
+        <!-- Category navigation -->
+        <div class="mobile-categories">
+            <a href="/" class="mobile-category-link">LATEST</a>
+            <a href="/category/classics" class="mobile-category-link">CLASSICS</a>
+            <a href="/category/collector" class="mobile-category-link">COLLECTOR</a>
+            <a href="/category/reviews" class="mobile-category-link">REVIEWS</a>
+            <a href="/category/trends" class="mobile-category-link">TRENDS</a>
 
-                <!-- Mobile User Menu -->
-                <div class="mobile-section">
-                    {% if session.isLoggedIn %}
-                        <h3 class="mobile-section-title">Account</h3>
-                        <div class="mobile-user-info">
-                            <div class="mobile-user-avatar">
-                                {{ icon('user', 'icon') }}
-                            </div>
-                            <span class="mobile-username">{{ session.currentUsername }}</span>
-                        </div>
-                        <div class="mobile-menu-links">
-                            <a href="/profile" class="mobile-menu-link">
-                                {{ icon('user', 'icon small') }}
-                                Profile
-                            </a>
-                            {% if session.canCurrentUserManageArticles %}
-                                <a href="/admin/dashboard" class="mobile-menu-link">
-                                    {{ icon('admin', 'icon small') }}
-                                    Admin Dashboard
-                                </a>
-                            {% endif %}
-                            <a href="/logout" class="mobile-menu-link logout">
-                                {{ icon('logout', 'icon small') }}
-                                Logout
-                            </a>
-                        </div>
-                    {% else %}
-                        <h3 class="mobile-section-title">Account</h3>
-                        <div class="mobile-auth-buttons">
-                            <a href="/login" class="mobile-auth-button login">
-                                {{ icon('login', 'icon small') }}
-                                Login
-                            </a>
-                            <a href="/register" class="mobile-auth-button register">
-                                {{ icon('register', 'icon small') }}
-                                Register
-                            </a>
-                        </div>
-                    {% endif %}
-                </div>
+            <!-- Added admin login section to mobile sidebar as requested -->
+            <div class="admin-section">
+                <h3 class="admin-title">Staff Access</h3>
+                <!-- Fixed admin login to go to login page first for proper authentication -->
+                <a href="/login" class="mobile-category-link">Admin Login</a>
             </div>
         </div>
-    </header>
+    </div>
+</nav>
 
-    <!-- Subheader - Categories Navigation (Desktop Only) -->
-    <nav class="subheader" role="navigation" aria-label="Categories">
-        <div class="subheader-content">
-            <div class="category-navigation">
-                <a href="/" class="category-pill active">
-                    {{ icon('home', 'icon small') }}
-                    All Articles
-                </a>
-                <a href="/category/classics" class="category-pill">
-                    {{ icon('star', 'icon small') }}
-                    Classics
-                </a>
-                <a href="/category/collector" class="category-pill">
-                    {{ icon('heart', 'icon small') }}
-                    Collector
-                </a>
-                <a href="/category/reviews" class="category-pill">
-                    {{ icon('eye', 'icon small') }}
-                    Reviews
-                </a>
-                <a href="/category/trends" class="category-pill">
-                    {{ icon('arrow-right', 'icon small') }}
-                    Trends
-                </a>
-            </div>
-        </div>
-    </nav>
+<main class="main">
+    {% block content %}{% endblock %}
+</main>
 
-    <main role="main">
-        {% block content %}{% endblock %}
-    </main>
+<!-- Using simple cookie notice as requested -->
+{% include 'gdpr/simple-cookie-notice.html.twig' %}
 
-    <footer class="site-footer" role="contentinfo">
-        <p>&copy; {{ "now"|date("Y") }} Grip & Grin. All rights reserved.</p>
-    </footer>
-</div>
+<footer class="footer">
+    <div class="container">
+        <p>&copy; 2025 Grip & Grin. I'm not Old. I'm Classic.</p>
+    </div>
+</footer>
 
-<!-- JavaScript for progressive enhancement -->
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: Georgia, 'Times New Roman', serif;
+        line-height: 1.6;
+        color: #000000;
+        background: #ffffff;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+
+    /* Header */
+    .header {
+        background: #ffffff;
+        border-bottom: 1px solid #e5e5e5;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 60px;
+    }
+
+    /* Burger Menu */
+    .mobile-menu-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+    }
+
+    .mobile-menu-button:hover {
+        background: #f5f5f5;
+    }
+
+    .hamburger-line {
+        display: block;
+        width: 20px;
+        height: 2px;
+        background: #000000;
+        margin: 4px 0;
+        transition: 0.3s;
+    }
+
+    /* Logo */
+    .logo-link {
+        text-decoration: none;
+        color: #000000;
+    }
+
+    .logo-text {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+
+    /* Added subscribe button styling */
+    .btn {
+        padding: 8px 16px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: background-color 0.2s ease;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background: #000000;
+        color: #ffffff;
+    }
+
+    .btn-primary:hover {
+        background: #333333;
+    }
+
+    .user-dropdown {
+        position: relative;
+    }
+
+    .user-button {
+        background: none;
+        border: 1px solid #e5e5e5;
+        border-radius: 4px;
+        padding: 6px 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: border-color 0.2s ease;
+    }
+
+    .user-button:hover {
+        border-color: #cccccc;
+    }
+
+    .user-avatar {
+        width: 24px;
+        height: 24px;
+        background: #000000;
+        color: #ffffff;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .user-name {
+        font-size: 0.875rem;
+        color: #000000;
+    }
+
+    .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: #ffffff;
+        border: 1px solid #e5e5e5;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        min-width: 150px;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-8px);
+        transition: all 0.2s ease;
+    }
+
+    .dropdown-menu.active {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .dropdown-item {
+        display: block;
+        padding: 12px 16px;
+        color: #000000;
+        text-decoration: none;
+        font-size: 0.875rem;
+        border-bottom: 1px solid #f5f5f5;
+        transition: background-color 0.2s ease;
+    }
+
+    .dropdown-item:hover {
+        background: #f5f5f5;
+    }
+
+    .dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Subheader */
+    .subheader {
+        background: #ffffff;
+        border-bottom: 1px solid #e5e5e5;
+        padding: 12px 0;
+    }
+
+    .category-nav {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .category-link {
+        color: #666666;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        padding: 8px 0;
+        position: relative;
+        transition: color 0.2s ease;
+    }
+
+    .category-link:hover {
+        color: #000000;
+    }
+
+    .category-link::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: #000000;
+        transition: width 0.3s ease;
+    }
+
+    .category-link:hover::after {
+        width: 100%;
+    }
+
+    /* Mobile sidebar */
+    .mobile-sidebar {
+        position: fixed;
+        top: 0;
+        left: -300px;
+        width: 300px;
+        height: 100vh;
+        background: #ffffff;
+        border-right: 1px solid #e5e5e5;
+        z-index: 200;
+        transition: left 0.3s ease;
+    }
+
+    .mobile-sidebar.active {
+        left: 0;
+    }
+
+    .sidebar-content {
+        padding: 80px 0 20px;
+    }
+
+    /* Mobile search form */
+    .mobile-search {
+        padding: 0 20px 20px;
+        border-bottom: 1px solid #e5e5e5;
+        margin-bottom: 20px;
+    }
+
+    .search-form {
+        display: flex;
+        gap: 8px;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #e5e5e5;
+        border-radius: 4px;
+        font-size: 0.875rem;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: #000000;
+    }
+
+    .search-button {
+        background: #000000;
+        color: #ffffff;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .search-button:hover {
+        background: #333333;
+    }
+
+    .mobile-categories {
+        padding: 0 20px;
+    }
+
+    .mobile-category-link {
+        display: block;
+        padding: 16px 0;
+        color: #000000;
+        text-decoration: none;
+        font-size: 1rem;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid #f5f5f5;
+        transition: color 0.2s ease;
+    }
+
+    .mobile-category-link:hover {
+        color: #666666;
+    }
+
+    .mobile-category-link:last-child {
+        border-bottom: none;
+    }
+
+    /* Added admin section styling for sidebar */
+    .admin-section {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #e5e5e5;
+    }
+
+    .admin-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #666666;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Main Content */
+    .main {
+        min-height: calc(100vh - 140px);
+    }
+
+    /* Footer */
+    .footer {
+        background: #f5f5f5;
+        border-top: 1px solid #e5e5e5;
+        padding: 20px 0;
+        text-align: center;
+    }
+
+    .footer p {
+        color: #666666;
+        font-size: 0.875rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .category-nav {
+            gap: 1.5rem;
+        }
+
+        .category-link {
+            font-size: 0.8rem;
+        }
+
+        .user-name {
+            display: none;
+        }
+    }
+
+    /* Sidebar overlay */
+    body.sidebar-open::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 150;
+    }
+</style>
+
 <script>
-    // Mobile hamburger menu functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM loaded, initializing menu functionality');
+    // Mobile menu toggle
+    const mobileMenuButton = document.querySelector('.mobile-menu-button');
+    const mobileSidebar = document.querySelector('.mobile-sidebar');
 
-        const hamburger = document.querySelector('.hamburger');
-        const mobileMenu = document.querySelector('.mobile-menu');
-        const hamburgerIcon = hamburger ? hamburger.querySelector('.hamburger-icon') : null;
-
-        console.log('Hamburger element:', hamburger);
-        console.log('Mobile menu element:', mobileMenu);
-        console.log('Hamburger icon element:', hamburgerIcon);
-
-        if (hamburger && mobileMenu && hamburgerIcon) {
-            hamburger.addEventListener('click', function() {
-                console.log('Hamburger clicked');
-
-                const isOpen = mobileMenu.classList.toggle('active');
-                console.log('Menu toggled, isOpen:', isOpen);
-
-                hamburger.setAttribute('aria-expanded', isOpen);
-                hamburger.classList.toggle('active');
-                document.body.classList.toggle('menu-open', isOpen);
-
-                // Change icon
-                if (isOpen) {
-                    hamburgerIcon.innerHTML = '{{ icon('x', 'icon')|raw }}';
-                    console.log('Changed to close icon');
-                } else {
-                    hamburgerIcon.innerHTML = '{{ icon('menu', 'icon')|raw }}';
-                    console.log('Changed to menu icon');
-                }
-            });
-
-            // Close menu when clicking on a link
-            const mobileLinks = mobileMenu.querySelectorAll('.mobile-category-item, .mobile-menu-link, .mobile-auth-button');
-            console.log('Found mobile links:', mobileLinks.length);
-
-            mobileLinks.forEach(link => {
-                link.addEventListener('click', function() {
-                    console.log('Mobile link clicked, closing menu');
-                    mobileMenu.classList.remove('active');
-                    hamburger.setAttribute('aria-expanded', 'false');
-                    hamburger.classList.remove('active');
-                    document.body.classList.remove('menu-open');
-                    hamburgerIcon.innerHTML = '{{ icon('menu', 'icon')|raw }}';
-                });
-            });
-
-            // Close menu on escape key
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
-                    console.log('Escape key pressed, closing menu');
-                    mobileMenu.classList.remove('active');
-                    hamburger.setAttribute('aria-expanded', 'false');
-                    hamburger.classList.remove('active');
-                    document.body.classList.remove('menu-open');
-                    hamburgerIcon.innerHTML = '{{ icon('menu', 'icon')|raw }}';
-                    hamburger.focus();
-                }
-            });
-        } else {
-            console.error('Menu elements not found:', {
-                hamburger: !!hamburger,
-                mobileMenu: !!mobileMenu,
-                hamburgerIcon: !!hamburgerIcon
-            });
-        }
-
-        // Desktop user dropdown functionality
-        const dropdown = document.querySelector('.user-dropdown');
-        if (dropdown) {
-            console.log('User dropdown found, initializing');
-            const toggle = dropdown.querySelector('.user-dropdown-toggle');
-            const menu = dropdown.querySelector('.user-dropdown-menu');
-
-            toggle.addEventListener('click', function(e) {
-                e.preventDefault();
-                const isActive = dropdown.classList.toggle('active');
-                toggle.setAttribute('aria-expanded', isActive);
-                console.log('User dropdown toggled:', isActive);
-            });
-
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!dropdown.contains(e.target)) {
-                    dropdown.classList.remove('active');
-                    toggle.setAttribute('aria-expanded', 'false');
-                }
-            });
-
-            // Close dropdown on escape key
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && dropdown.classList.contains('active')) {
-                    dropdown.classList.remove('active');
-                    toggle.setAttribute('aria-expanded', 'false');
-                    toggle.focus();
-                }
-            });
-        }
-    });
-
-    // Lazy loading for images
-    if ('IntersectionObserver' in window) {
-        const imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    img.src = img.dataset.src;
-                    img.classList.remove('lazy-image');
-                    img.classList.add('image-loading');
-
-                    img.onload = () => {
-                        img.classList.remove('image-loading');
-                        img.classList.add('image-loaded');
-                    };
-
-                    img.onerror = () => {
-                        img.classList.remove('image-loading');
-                        img.classList.add('image-error');
-                        img.alt = 'Image failed to load';
-                    };
-
-                    observer.unobserve(img);
-                }
-            });
-        });
-
-        // Observe all lazy images
-        document.querySelectorAll('img[data-src]').forEach(img => {
-            imageObserver.observe(img);
+    if (mobileMenuButton && mobileSidebar) {
+        mobileMenuButton.addEventListener('click', function() {
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', !isExpanded);
+            mobileSidebar.classList.toggle('active');
+            document.body.classList.toggle('sidebar-open');
         });
     }
 
-    // Progressive enhancement for animations
-    const animationObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('in-view');
-            }
+    if (mobileSidebar) {
+        mobileSidebar.addEventListener('click', function(e) {
+            e.stopPropagation();
         });
-    }, { threshold: 0.1 });
+    }
 
-    document.querySelectorAll('.observe-lazy').forEach(el => {
-        animationObserver.observe(el);
+    // User dropdown
+    const userButton = document.querySelector('.user-button');
+    const dropdownMenu = document.querySelector('.dropdown-menu');
+
+    if (userButton && dropdownMenu) {
+        userButton.addEventListener('click', function() {
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', !isExpanded);
+            dropdownMenu.classList.toggle('active');
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+        // Close user dropdown when clicking outside
+        if (userButton && dropdownMenu && !e.target.closest('.user-dropdown')) {
+            userButton.setAttribute('aria-expanded', 'false');
+            dropdownMenu.classList.remove('active');
+        }
+
+        // Close sidebar when clicking outside (but not inside sidebar itself)
+        if (mobileMenuButton && mobileSidebar &&
+            !e.target.closest('.header') &&
+            !e.target.closest('.mobile-sidebar')) {
+            mobileMenuButton.setAttribute('aria-expanded', 'false');
+            mobileSidebar.classList.remove('active');
+            document.body.classList.remove('sidebar-open');
+        }
     });
 </script>
+
+<!-- Using simple cookies JavaScript as requested -->
+<script src="/js/gdpr/simple-cookies.js"></script>
 </body>
 </html>

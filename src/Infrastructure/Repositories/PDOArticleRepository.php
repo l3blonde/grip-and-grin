@@ -3,355 +3,283 @@ declare(strict_types=1);
 
 namespace GripAndGrin\Infrastructure\Repositories;
 
-use DateTime;
 use GripAndGrin\Domain\Entities\Article;
 use GripAndGrin\Domain\Interfaces\ArticleRepositoryInterface;
-use GripAndGrin\Domain\ValueObjects\ArticleStatus;
-use GripAndGrin\Domain\ValueObjects\Image;
-use GripAndGrin\Infrastructure\Database\DatabaseConnection;
 use PDO;
+use DateTime;
 
 class PDOArticleRepository implements ArticleRepositoryInterface
 {
-    private PDO $db;
+    private PDO $pdo;
 
-    public function __construct(DatabaseConnection $databaseConnection)
+    public function __construct(PDO $pdo)
     {
-        $this->db = $databaseConnection->getConnection();
+        $this->pdo = $pdo;
     }
 
-    public function findAllPublished(): array
+    public function getPdo(): PDO
     {
-        $stmt = $this->db->query("
-            SELECT * FROM articles 
-            WHERE status = 'published' AND published_at IS NOT NULL AND published_at <= NOW() 
-            ORDER BY published_at DESC
-        ");
-
-        $articles = [];
-        while ($row = $stmt->fetch()) {
-            $articles[] = $this->mapRowToArticle($row);
-        }
-        return $articles;
-    }
-
-    public function findBySlug(string $slug): ?Article
-    {
-        $stmt = $this->db->prepare("
-            SELECT * FROM articles 
-            WHERE slug = :slug AND status = 'published' AND published_at IS NOT NULL AND published_at <= NOW()
-        ");
-        $stmt->execute(['slug' => $slug]);
-        $row = $stmt->fetch();
-
-        return $row ? $this->mapRowToArticle($row) : null;
-    }
-
-    public function findNextArticle(Article $currentArticle): ?Article
-    {
-        $stmt = $this->db->prepare("
-            SELECT * FROM articles 
-            WHERE status = 'published' 
-            AND published_at IS NOT NULL 
-            AND published_at <= NOW()
-            AND published_at > :current_published_at
-            ORDER BY published_at ASC
-            LIMIT 1
-        ");
-        $stmt->execute(['current_published_at' => $currentArticle->getPublishedAt()->format('Y-m-d H:i:s')]);
-        $row = $stmt->fetch();
-
-        return $row ? $this->mapRowToArticle($row) : null;
-    }
-
-    public function findPreviousArticle(Article $currentArticle): ?Article
-    {
-        $stmt = $this->db->prepare("
-            SELECT * FROM articles 
-            WHERE status = 'published' 
-            AND published_at IS NOT NULL 
-            AND published_at <= NOW()
-            AND published_at < :current_published_at
-            ORDER BY published_at DESC
-            LIMIT 1
-        ");
-        $stmt->execute(['current_published_at' => $currentArticle->getPublishedAt()->format('Y-m-d H:i:s')]);
-        $row = $stmt->fetch();
-
-        return $row ? $this->mapRowToArticle($row) : null;
+        return $this->pdo;
     }
 
     public function findById(int $id): ?Article
     {
-        $stmt = $this->db->prepare("SELECT * FROM articles WHERE id = :id");
-        $stmt->execute(['id' => $id]);
-        $row = $stmt->fetch();
-
-        return $row ? $this->mapRowToArticle($row) : null;
+        $stmt = $this->pdo->prepare("SELECT * FROM articles WHERE id = ?");
+        $stmt->execute([$id]);
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $data ? $this->mapToEntity($data) : null;
     }
 
-    public function findAll(): array
+    public function findBySlug(string $slug): ?Article
     {
-        $stmt = $this->db->query("SELECT * FROM articles ORDER BY created_at DESC");
-
-        $articles = [];
-        while ($row = $stmt->fetch()) {
-            $articles[] = $this->mapRowToArticle($row);
-        }
-        return $articles;
+        $stmt = $this->pdo->prepare("SELECT * FROM articles WHERE slug = ? AND status = 'published'");
+        $stmt->execute([$slug]);
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $data ? $this->mapToEntity($data) : null;
     }
 
-    public function findAllPaginated(int $limit, int $offset): array
+    public function findPublished(int $limit = 10, int $offset = 0): array
     {
-        $stmt = $this->db->prepare("
-            SELECT * FROM articles 
-            ORDER BY created_at DESC
-            LIMIT :limit OFFSET :offset
-        ");
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
-
-        $articles = [];
-        while ($row = $stmt->fetch()) {
-            $articles[] = $this->mapRowToArticle($row);
-        }
-        return $articles;
+        $stmt = $this->pdo->prepare("SELECT * FROM articles WHERE status = 'published' ORDER BY published_at DESC LIMIT ? OFFSET ?");
+        $stmt->execute([$limit, $offset]);
+        return array_map([$this, 'mapToEntity'], $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
-    public function countAll(): int
+    public function findByCategory(int $categoryId, int $limit = 10, int $offset = 0): array
     {
-        $stmt = $this->db->query("SELECT COUNT(*) as count FROM articles");
-        $result = $stmt->fetch();
-        return (int) $result['count'];
+        $stmt = $this->pdo->prepare("SELECT * FROM articles WHERE category_id = ? AND status = 'published' ORDER BY published_at DESC LIMIT ? OFFSET ?");
+        $stmt->execute([$categoryId, $limit, $offset]);
+        return array_map([$this, 'mapToEntity'], $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
-    public function findAllPublishedPaginated(int $limit, int $offset): array
+    public function countPublished(): int
     {
-        $stmt = $this->db->prepare("
-            SELECT * FROM articles 
-            WHERE status = 'published' AND published_at IS NOT NULL AND published_at <= NOW() 
-            ORDER BY published_at DESC
-            LIMIT :limit OFFSET :offset
-        ");
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
-
-        $articles = [];
-        while ($row = $stmt->fetch()) {
-            $articles[] = $this->mapRowToArticle($row);
-        }
-        return $articles;
-    }
-
-    public function countAllPublished(): int
-    {
-        $stmt = $this->db->query("
-            SELECT COUNT(*) as count FROM articles 
-            WHERE status = 'published' AND published_at IS NOT NULL AND published_at <= NOW()
-        ");
-        $result = $stmt->fetch();
-        return (int) $result['count'];
-    }
-
-    public function searchArticles(string $query, int $limit, int $offset): array
-    {
-        $stmt = $this->db->prepare("
-            SELECT * FROM articles 
-            WHERE status = 'published' AND published_at IS NOT NULL AND published_at <= NOW()
-            AND (title LIKE :query OR content LIKE :query)
-            ORDER BY published_at DESC
-            LIMIT :limit OFFSET :offset
-        ");
-        $searchTerm = '%' . $query . '%';
-        $stmt->bindValue(':query', $searchTerm, PDO::PARAM_STR);
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
-
-        $articles = [];
-        while ($row = $stmt->fetch()) {
-            $articles[] = $this->mapRowToArticle($row);
-        }
-        return $articles;
-    }
-
-    public function countSearchResults(string $query): int
-    {
-        $stmt = $this->db->prepare("
-            SELECT COUNT(*) as count FROM articles 
-            WHERE status = 'published' AND published_at IS NOT NULL AND published_at <= NOW()
-            AND (title LIKE :query OR content LIKE :query)
-        ");
-        $searchTerm = '%' . $query . '%';
-        $stmt->bindValue(':query', $searchTerm, PDO::PARAM_STR);
-        $stmt->execute();
-        $result = $stmt->fetch();
-        return (int) $result['count'];
-    }
-
-    public function findByCategoryPaginated(int $categoryId, int $limit, int $offset): array
-    {
-        $stmt = $this->db->prepare("
-            SELECT * FROM articles 
-            WHERE category_id = :category_id 
-            AND status = 'published' AND published_at IS NOT NULL AND published_at <= NOW() 
-            ORDER BY published_at DESC
-            LIMIT :limit OFFSET :offset
-        ");
-        $stmt->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
-
-        $articles = [];
-        while ($row = $stmt->fetch()) {
-            $articles[] = $this->mapRowToArticle($row);
-        }
-        return $articles;
+        $stmt = $this->pdo->query("SELECT COUNT(*) FROM articles WHERE status = 'published'");
+        return (int) $stmt->fetchColumn();
     }
 
     public function countByCategory(int $categoryId): int
     {
-        $stmt = $this->db->prepare("
-            SELECT COUNT(*) as count FROM articles 
-            WHERE category_id = :category_id 
-            AND status = 'published' AND published_at IS NOT NULL AND published_at <= NOW()
-        ");
-        $stmt->bindValue(':category_id', $categoryId, PDO::PARAM_INT);
-        $stmt->execute();
-        $result = $stmt->fetch();
-        return (int) $result['count'];
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM articles WHERE category_id = ? AND status = 'published'");
+        $stmt->execute([$categoryId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function search(string $query, int $limit = 10, int $offset = 0): array
+    {
+        $searchTerm = "%{$query}%";
+        $stmt = $this->pdo->prepare("SELECT * FROM articles WHERE (title LIKE ? OR content LIKE ?) AND status = 'published' ORDER BY published_at DESC LIMIT ? OFFSET ?");
+        $stmt->execute([$searchTerm, $searchTerm, $limit, $offset]);
+        return array_map([$this, 'mapToEntity'], $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
     public function save(Article $article): Article
     {
         if ($article->getId() === 0) {
-            return $this->insert($article);
+            // Create new article
+            $stmt = $this->pdo->prepare("
+                INSERT INTO articles (title, slug, content, excerpt, author_id, category_id, status, published_at, created_at, updated_at, featured_image, image_alt_text) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?, ?)
+            ");
+
+            $stmt->execute([
+                $article->getTitle(),
+                $article->getSlug(),
+                $article->getContent(),
+                $article->getExcerpt(),
+                $article->getAuthorId(),
+                $article->getCategoryId(),
+                $article->getStatus(),
+                $article->getPublishedAt() ? $article->getPublishedAt()->format('Y-m-d H:i:s') : null,
+                $article->getFeaturedImage(),
+                $article->getImageAltText()
+            ]);
+
+            $articleId = (int) $this->pdo->lastInsertId();
+            return $this->findById($articleId);
+        } else {
+            // Update existing article
+            $stmt = $this->pdo->prepare("
+                UPDATE articles SET 
+                    title = ?, slug = ?, content = ?, excerpt = ?, category_id = ?, 
+                    status = ?, published_at = ?, updated_at = NOW(), 
+                    featured_image = ?, image_alt_text = ?
+                WHERE id = ?
+            ");
+
+            $stmt->execute([
+                $article->getTitle(),
+                $article->getSlug(),
+                $article->getContent(),
+                $article->getExcerpt(),
+                $article->getCategoryId(),
+                $article->getStatus(),
+                $article->getPublishedAt() ? $article->getPublishedAt()->format('Y-m-d H:i:s') : null,
+                $article->getFeaturedImage(),
+                $article->getImageAltText(),
+                $article->getId()
+            ]);
+
+            return $this->findById($article->getId());
         }
-        return $this->update($article);
     }
 
     public function delete(int $id): bool
     {
-        $stmt = $this->db->prepare("DELETE FROM articles WHERE id = :id");
-        return $stmt->execute(['id' => $id]);
+        $stmt = $this->pdo->prepare("DELETE FROM articles WHERE id = ?");
+        return $stmt->execute([$id]);
     }
 
-    private function insert(Article $article): Article
+    public function findAll(): array
     {
-        $stmt = $this->db->prepare("
-            INSERT INTO articles (title, slug, content, excerpt, author_id, category_id, status, published_at, 
-                                image_original_path, image_thumbnail_path, image_medium_path, image_full_path, 
-                                image_alt_text, image_width, image_height, created_at) 
-            VALUES (:title, :slug, :content, :excerpt, :author_id, :category_id, :status, :published_at,
-                    :image_original_path, :image_thumbnail_path, :image_medium_path, :image_full_path,
-                    :image_alt_text, :image_width, :image_height, :created_at)
-        ");
-
-        $featuredImage = $article->getFeaturedImage();
-
-        $stmt->execute([
-            'title' => $article->getTitle(),
-            'slug' => $article->getSlug(),
-            'content' => $article->getContent(),
-            'excerpt' => $article->getExcerpt(),
-            'author_id' => $article->getAuthorId(),
-            'category_id' => $article->getCategoryId(),
-            'status' => $article->getStatus()->getValue(),
-            'published_at' => $article->getPublishedAt()?->format('Y-m-d H:i:s'),
-            'image_original_path' => $featuredImage?->getOriginalPath(),
-            'image_thumbnail_path' => $featuredImage?->getThumbnailPath(),
-            'image_medium_path' => $featuredImage?->getMediumPath(),
-            'image_full_path' => $featuredImage?->getFullPath(),
-            'image_alt_text' => $featuredImage?->getAltText(),
-            'image_width' => $featuredImage?->getOriginalWidth(),
-            'image_height' => $featuredImage?->getOriginalHeight(),
-            'created_at' => $article->getCreatedAt()->format('Y-m-d H:i:s')
-        ]);
-
-        $id = (int) $this->db->lastInsertId();
-
-        return new Article(
-            $id,
-            $article->getTitle(),
-            $article->getSlug(),
-            $article->getContent(),
-            $article->getExcerpt(),
-            $article->getAuthorId(),
-            $article->getCategoryId(),
-            $article->getStatus(),
-            $article->getPublishedAt(),
-            $article->getCreatedAt(),
-            $article->getFeaturedImage()
-        );
+        $stmt = $this->pdo->query("SELECT * FROM articles ORDER BY created_at DESC");
+        return array_map([$this, 'mapToEntity'], $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
-    private function update(Article $article): Article
+    public function findAllPublished(?int $limit = null): array
     {
-        $stmt = $this->db->prepare("
-            UPDATE articles 
-            SET title = :title, slug = :slug, content = :content, excerpt = :excerpt, 
-                category_id = :category_id, status = :status, published_at = :published_at,
-                image_original_path = :image_original_path, image_thumbnail_path = :image_thumbnail_path,
-                image_medium_path = :image_medium_path, image_full_path = :image_full_path,
-                image_alt_text = :image_alt_text, image_width = :image_width, image_height = :image_height
-            WHERE id = :id
-        ");
-
-        $featuredImage = $article->getFeaturedImage();
-
-        $stmt->execute([
-            'id' => $article->getId(),
-            'title' => $article->getTitle(),
-            'slug' => $article->getSlug(),
-            'content' => $article->getContent(),
-            'excerpt' => $article->getExcerpt(),
-            'category_id' => $article->getCategoryId(),
-            'status' => $article->getStatus()->getValue(),
-            'published_at' => $article->getPublishedAt()?->format('Y-m-d H:i:s'),
-            'image_original_path' => $featuredImage?->getOriginalPath(),
-            'image_thumbnail_path' => $featuredImage?->getThumbnailPath(),
-            'image_medium_path' => $featuredImage?->getMediumPath(),
-            'image_full_path' => $featuredImage?->getFullPath(),
-            'image_alt_text' => $featuredImage?->getAltText(),
-            'image_width' => $featuredImage?->getOriginalWidth(),
-            'image_height' => $featuredImage?->getOriginalHeight()
-        ]);
-
-        return $article;
-    }
-
-    private function mapRowToArticle(array $row): Article
-    {
-        $featuredImage = null;
-
-        // Check if article has image data
-        if (!empty($row['image_thumbnail_path'])) {
-            $featuredImage = new Image(
-                $row['image_original_path'] ?? '',
-                $row['image_thumbnail_path'],
-                $row['image_medium_path'] ?? '',
-                $row['image_full_path'] ?? '',
-                $row['image_alt_text'] ?? '',
-                (int)($row['image_width'] ?? 0),
-                (int)($row['image_height'] ?? 0)
-            );
+        if ($limit === null) {
+            $stmt = $this->pdo->query("SELECT * FROM articles WHERE status = 'published' ORDER BY published_at DESC");
+        } else {
+            $stmt = $this->pdo->prepare("SELECT * FROM articles WHERE status = 'published' ORDER BY published_at DESC LIMIT ?");
+            $stmt->execute([$limit]);
         }
+        return array_map([$this, 'mapToEntity'], $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
 
+    public function findAllPublishedPaginated(int $limit, int $offset): array
+    {
+        return $this->findPublished($limit, $offset);
+    }
+
+    public function countAllPublished(): int
+    {
+        return $this->countPublished();
+    }
+
+    public function findByCategorySlug(string $categorySlug): array
+    {
+        $stmt = $this->pdo->prepare("SELECT a.* FROM articles a INNER JOIN categories c ON a.category_id = c.id WHERE c.slug = ? AND a.status = 'published' ORDER BY a.published_at DESC");
+        $stmt->execute([$categorySlug]);
+        return array_map([$this, 'mapToEntity'], $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    public function findNextArticle(Article $currentArticle): ?Article
+    {
+        if (!$currentArticle->getPublishedAt()) {
+            return null;
+        }
+        $stmt = $this->pdo->prepare("SELECT * FROM articles WHERE published_at > ? AND status = 'published' ORDER BY published_at ASC LIMIT 1");
+        $stmt->execute([$currentArticle->getPublishedAt()->format('Y-m-d H:i:s')]);
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $data ? $this->mapToEntity($data) : null;
+    }
+
+    public function findPreviousArticle(Article $currentArticle): ?Article
+    {
+        if (!$currentArticle->getPublishedAt()) {
+            return null;
+        }
+        $stmt = $this->pdo->prepare("SELECT * FROM articles WHERE published_at < ? AND status = 'published' ORDER BY published_at DESC LIMIT 1");
+        $stmt->execute([$currentArticle->getPublishedAt()->format('Y-m-d H:i:s')]);
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $data ? $this->mapToEntity($data) : null;
+    }
+
+    public function findAllPaginated(int $limit, int $offset): array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM articles ORDER BY created_at DESC LIMIT ? OFFSET ?");
+        $stmt->execute([$limit, $offset]);
+        return array_map([$this, 'mapToEntity'], $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    public function countAll(): int
+    {
+        $stmt = $this->pdo->query("SELECT COUNT(*) FROM articles");
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function searchArticles(string $query, int $limit, int $offset): array
+    {
+        return $this->search($query, $limit, $offset);
+    }
+
+    public function countSearchResults(string $query): int
+    {
+        $searchTerm = "%{$query}%";
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM articles WHERE (title LIKE ? OR content LIKE ?) AND status = 'published'");
+        $stmt->execute([$searchTerm, $searchTerm]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function findByCategoryPaginated(int $categoryId, int $limit, int $offset): array
+    {
+        return $this->findByCategory($categoryId, $limit, $offset);
+    }
+
+    public function findByCategorySlugPaginated(string $categorySlug, int $limit = 10, int $offset = 0): array
+    {
+        $stmt = $this->pdo->prepare("SELECT a.* FROM articles a INNER JOIN categories c ON a.category_id = c.id WHERE c.slug = ? AND a.status = 'published' ORDER BY a.published_at DESC LIMIT ? OFFSET ?");
+        $stmt->execute([$categorySlug, $limit, $offset]);
+        return array_map([$this, 'mapToEntity'], $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    public function countByCategorySlug(string $categorySlug): int
+    {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM articles a INNER JOIN categories c ON a.category_id = c.id WHERE c.slug = ? AND a.status = 'published'");
+        $stmt->execute([$categorySlug]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function searchPublished(string $query, int $limit = 10, int $offset = 0): array
+    {
+        return $this->search($query, $limit, $offset);
+    }
+
+    public function getLatest(int $limit = 10): array
+    {
+        return $this->findPublished($limit, 0);
+    }
+
+    public function getFeatured(int $limit = 10): array
+    {
+        // Return latest published articles as featured (can be enhanced later with a featured flag)
+        return $this->findPublished($limit, 0);
+    }
+
+    public function findAllForAdmin(): array
+    {
+        $stmt = $this->pdo->query("SELECT * FROM articles ORDER BY created_at DESC");
+        return array_map([$this, 'mapToEntity'], $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    public function togglePublishStatus(int $articleId): bool
+    {
+        $stmt = $this->pdo->prepare("UPDATE articles SET status = CASE WHEN status = 'published' THEN 'draft' ELSE 'published' END WHERE id = ?");
+        return $stmt->execute([$articleId]);
+    }
+
+    private function mapToEntity(array $data): Article
+    {
         return new Article(
-            (int)$row['id'],
-            $row['title'],
-            $row['slug'],
-            $row['content'],
-            $row['excerpt'] ?? '',
-            (int)$row['author_id'],
-            (int)$row['category_id'],
-            new ArticleStatus($row['status']),
-            $row['published_at'] ? new DateTime($row['published_at']) : null,
-            new DateTime($row['created_at']),
-            $featuredImage
+            (int) $data['id'],
+            $data['title'],
+            $data['slug'],
+            $data['content'],
+            $data['excerpt'],
+            (int) ($data['author_id'] ?? 1),
+            (int) ($data['category_id'] ?? 1),
+            $data['status'], // Passing string status directly as expected by Article constructor
+            $data['published_at'] ? new DateTime($data['published_at']) : null,
+            $data['created_at'] ? new DateTime($data['created_at']) : new DateTime(),
+            $data['updated_at'] ? new DateTime($data['updated_at']) : new DateTime(),
+            $data['featured_image'] ?? $data['image_original_path'] ?? null,
+            $data['image_thumbnail_path'] ?? null,
+            $data['image_medium_path'] ?? null,
+            $data['image_full_path'] ?? null,
+            $data['image_alt_text'] ?? null,
+            isset($data['image_width']) ? (int) $data['image_width'] : null,
+            isset($data['image_height']) ? (int) $data['image_height'] : null
         );
     }
 }

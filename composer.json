@@ -1,29 +1,21 @@
 {
-  "name": "grip-and-grin/classic-car-blog",
-  "description": "A classic car news web built with PHP and Twig",
+  "name": "grip-and-grin/classic-car-magazine",
+  "description": "Classic car magazine with clean architecture",
   "type": "project",
-  "license": "MIT",
   "require": {
     "php": ">=8.1",
     "ext-pdo": "*",
     "ext-pdo_mysql": "*",
-    "twig/twig": "^3.21.1",
-    "symfony/http-foundation": "^7.3.2",
-    "monolog/monolog": "^3.9.0"
+    "twig/twig": "^3.21.1"
   },
   "autoload": {
     "psr-4": {
       "GripAndGrin\\": "src/"
     }
   },
-  "scripts": {
-    "post-install-cmd": ["php public/migrate-simple.php"],
-    "start": "php -S localhost:8080 -t public public/index.php"
-  },
   "config": {
     "optimize-autoloader": true,
-    "sort-packages": true,
-    "classmap-authoritative": true
+    "sort-packages": true
   },
   "minimum-stability": "stable",
   "prefer-stable": true

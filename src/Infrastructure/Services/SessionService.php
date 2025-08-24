@@ -10,7 +10,7 @@ class SessionService
     public function __construct()
     {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            if (session_status() === PHP_SESSION_NONE) { session_start(); }
         }
     }
 
@@ -21,10 +21,8 @@ class SessionService
         $_SESSION['email'] = $user->getEmail();
         $_SESSION['role'] = $user->getRole()->getValue();
         $_SESSION['is_admin'] = $user->isAdmin();
-        $_SESSION['can_manage_articles'] = $user->canManageArticles();
+        $_SESSION['is_editor'] = $user->isEditor();
         $_SESSION['logged_in'] = true;
-
-        // Regenerate session ID for security
         session_regenerate_id(true);
     }
 
@@ -32,9 +30,7 @@ class SessionService
     {
         session_unset();
         session_destroy();
-
-        // Start new session
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
         session_regenerate_id(true);
     }
 
@@ -43,34 +39,23 @@ class SessionService
         return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
     }
 
-    public function getCurrentUserId(): ?int
+    public function getCurrentUserId(): ?int { return $_SESSION['user_id'] ?? null; }
+    public function getCurrentUsername(): ?string { return $_SESSION['username'] ?? null; }
+    public function getCurrentUserEmail(): ?string { return $_SESSION['email'] ?? null; }
+    public function getCurrentUserRole(): ?string { return $_SESSION['role'] ?? null; }
+    public function isAdmin(): bool { return $_SESSION['is_admin'] ?? false; }
+    public function isEditor(): bool { return $_SESSION['is_editor'] ?? false; }
+
+    public function setFlashMessage(string $type, string $message): void
     {
-        return $_SESSION['user_id'] ?? null;
+        $_SESSION['flash'][$type] = $message;
     }
 
-    public function getCurrentUsername(): ?string
+    public function getFlashMessage(string $type): ?string
     {
-        return $_SESSION['username'] ?? null;
-    }
-
-    public function getCurrentUserEmail(): ?string
-    {
-        return $_SESSION['email'] ?? null;
-    }
-
-    public function getCurrentUserRole(): ?string
-    {
-        return $_SESSION['role'] ?? null;
-    }
-
-    public function isCurrentUserAdmin(): bool
-    {
-        return $_SESSION['is_admin'] ?? false;
-    }
-
-    public function canCurrentUserManageArticles(): bool
-    {
-        return $_SESSION['can_manage_articles'] ?? false;
+        $message = $_SESSION['flash'][$type] ?? null;
+        if ($message) unset($_SESSION['flash'][$type]);
+        return $message;
     }
 
     public function generateCsrfToken(): string
@@ -84,5 +69,24 @@ class SessionService
     public function validateCsrfToken(string $token): bool
     {
         return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+    }
+
+    public function getSessionData(): array
+    {
+        return [
+            'logged_in' => $this->isLoggedIn(),
+            'user_id' => $this->getCurrentUserId(),
+            'username' => $this->getCurrentUsername(),
+            'email' => $this->getCurrentUserEmail(),
+            'role' => $this->getCurrentUserRole(),
+            'is_admin' => $this->isAdmin(),
+            'is_editor' => $this->isEditor(),
+            'flash' => [
+                'success' => $this->getFlashMessage('success'),
+                'error' => $this->getFlashMessage('error'),
+                'info' => $this->getFlashMessage('info'),
+                'warning' => $this->getFlashMessage('warning')
+            ]
+        ];
     }
 }

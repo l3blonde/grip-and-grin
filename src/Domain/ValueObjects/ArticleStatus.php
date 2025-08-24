@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace GripAndGrin\Domain\ValueObjects;
 
-use InvalidArgumentException;
-
 class ArticleStatus
 {
     public const DRAFT = 'draft';
@@ -15,9 +13,10 @@ class ArticleStatus
 
     public function __construct(string $status)
     {
-        if (!in_array($status, [self::DRAFT, self::PUBLISHED, self::ARCHIVED])) {
-            throw new InvalidArgumentException('Invalid article status');
+        if (!in_array($status, [self::DRAFT, self::PUBLISHED, self::ARCHIVED], true)) {
+            throw new \InvalidArgumentException("Invalid article status: {$status}");
         }
+        
         $this->value = $status;
     }
 
@@ -26,14 +25,14 @@ class ArticleStatus
         return $this->value;
     }
 
-    public function isDraft(): bool
-    {
-        return $this->value === self::DRAFT;
-    }
-
     public function isPublished(): bool
     {
         return $this->value === self::PUBLISHED;
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->value === self::DRAFT;
     }
 
     public function isArchived(): bool

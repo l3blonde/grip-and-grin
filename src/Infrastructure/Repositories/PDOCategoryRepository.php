@@ -5,54 +5,49 @@ namespace GripAndGrin\Infrastructure\Repositories;
 
 use GripAndGrin\Domain\Entities\Category;
 use GripAndGrin\Domain\Interfaces\CategoryRepositoryInterface;
-use GripAndGrin\Infrastructure\Database\DatabaseConnection;
 use PDO;
+use DateTime;
 
 class PDOCategoryRepository implements CategoryRepositoryInterface
 {
-    private PDO $db;
+    private PDO $pdo;
 
-    public function __construct(DatabaseConnection $databaseConnection)
+    public function __construct(PDO $pdo)
     {
-        $this->db = $databaseConnection->getConnection();
-    }
-
-    public function findAll(): array
-    {
-        $stmt = $this->db->query("SELECT * FROM categories ORDER BY name ASC");
-
-        $categories = [];
-        while ($row = $stmt->fetch()) {
-            $categories[] = $this->mapRowToCategory($row);
-        }
-        return $categories;
-    }
-
-    public function findBySlug(string $slug): ?Category
-    {
-        $stmt = $this->db->prepare("SELECT * FROM categories WHERE slug = :slug");
-        $stmt->execute(['slug' => $slug]);
-        $row = $stmt->fetch();
-
-        return $row ? $this->mapRowToCategory($row) : null;
+        $this->pdo = $pdo;
     }
 
     public function findById(int $id): ?Category
     {
-        $stmt = $this->db->prepare("SELECT * FROM categories WHERE id = :id");
-        $stmt->execute(['id' => $id]);
-        $row = $stmt->fetch();
-
-        return $row ? $this->mapRowToCategory($row) : null;
+        $stmt = $this->pdo->prepare("SELECT * FROM categories WHERE id = ?");
+        $stmt->execute([$id]);
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $data ? $this->mapToEntity($data) : null;
     }
 
-    private function mapRowToCategory(array $row): Category
+    public function findBySlug(string $slug): ?Category
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM categories WHERE slug = ?");
+        $stmt->execute([$slug]);
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $data ? $this->mapToEntity($data) : null;
+    }
+
+    public function findAll(): array
+    {
+        $stmt = $this->pdo->query("SELECT * FROM categories ORDER BY name");
+        return array_map([$this, 'mapToEntity'], $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    private function mapToEntity(array $data): Category
     {
         return new Category(
-            (int)$row['id'],
-            $row['name'],
-            $row['slug'],
-            $row['description'] ?? ''
+            (int) $data['id'],
+            $data['name'],
+            $data['slug'],
+            $data['description'] ?? '',
+            $data['created_at'] ? new DateTime($data['created_at']) : new DateTime(),
+            $data['updated_at'] ? new DateTime($data['updated_at']) : new DateTime()
         );
     }
 }

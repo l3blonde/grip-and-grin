@@ -7,12 +7,7 @@ use GripAndGrin\Domain\Entities\Category;
 
 interface CategoryRepositoryInterface
 {
-    /**
-     * @return Category[]
-     */
     public function findAll(): array;
-
     public function findBySlug(string $slug): ?Category;
-
     public function findById(int $id): ?Category;
 }

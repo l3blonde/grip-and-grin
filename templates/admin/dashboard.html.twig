@@ -1,74 +1,160 @@
-{% extends "base.html.twig" %}
+{% extends "admin/layout.html.twig" %}
 
-{% block title %}Admin Dashboard | {{ parent() }}{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-    <div class="admin-dashboard">
-        <div class="admin-header">
-            <h1>Admin Dashboard</h1>
-            <p>Welcome back, {{ session.currentUsername }}!</p>
-        </div>
+    <style>
+        .dashboard-container {
+            min-height: 100vh;
+            background-color: white;
+        }
 
-        <div class="dashboard-stats">
-            <div class="stat-card">
-                <h3>Quick Actions</h3>
-                <div class="quick-actions">
-                    <a href="/admin/articles/create" class="action-button primary">
-                        <span>➕</span>
-                        Create New Article
-                    </a>
-                    <a href="/admin/articles" class="action-button">
-                        <span>📄</span>
-                        Manage Articles
-                    </a>
-                    {% if session.isCurrentUserAdmin %}
-                        <a href="/admin/users" class="action-button">
-                            <span>👥</span>
-                            Manage Users
-                        </a>
-                    {% endif %}
+        .dashboard-content {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 80px 24px;
+        }
+
+        .dashboard-header {
+            margin-bottom: 80px;
+        }
+
+        .dashboard-title {
+            font-size: 2rem;
+            font-weight: 300;
+            color: black;
+            margin-bottom: 12px;
+        }
+
+        .dashboard-subtitle {
+            color: #666666;
+            font-size: 0.875rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 64px;
+            margin-bottom: 80px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 100;
+            color: black;
+            margin-bottom: 12px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #999999;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .actions-container {
+            border: 1px solid #e5e5e5;
+        }
+
+        .action-link {
+            display: block;
+            width: 100%;
+            padding: 32px;
+            border-bottom: 1px solid #e5e5e5;
+            text-decoration: none;
+            color: inherit;
+            transition: background-color 0.2s;
+        }
+
+        .action-link:last-child {
+            border-bottom: none;
+        }
+
+        .action-link:hover {
+            background-color: #f8f8f8;
+        }
+
+        .action-title {
+            font-weight: 500;
+            color: black;
+        }
+
+        .action-description {
+            font-size: 0.875rem;
+            color: #999999;
+            margin-top: 4px;
+        }
+
+        .logout-section {
+            margin-top: 80px;
+            padding-top: 32px;
+            border-top: 1px solid #e5e5e5;
+            text-align: center;
+        }
+
+        .logout-link {
+            font-size: 0.875rem;
+            color: #999999;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .logout-link:hover {
+            color: black;
+        }
+    </style>
+
+    <div class="dashboard-container">
+        <div class="dashboard-content">
+            <div class="dashboard-header">
+                <h1 class="dashboard-title">{{ title }}</h1>
+                <p class="dashboard-subtitle">Content and user management</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">{{ totalArticles }}</div>
+                    <div class="stat-label">Articles</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ totalUsers }}</div>
+                    <div class="stat-label">Users</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ totalAdmins }}</div>
+                    <div class="stat-label">Admins</div>
                 </div>
             </div>
 
-            <div class="stat-card">
-                <h3>System Overview</h3>
-                <div class="system-info">
-                    <div class="info-item">
-                        <span class="label">Your Role:</span>
-                        <span class="value role-badge role-{{ session.currentUserRole }}">
-                            {{ session.currentUserRole|title }}
-                        </span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Last Login:</span>
-                        <span class="value">{{ "now"|date("F j, Y g:i A") }}</span>
-                    </div>
-                </div>
+            <div class="actions-container">
+                <a href="/admin-articles" class="action-link">
+                    <div class="action-title">Manage Articles</div>
+                    <div class="action-description">View, edit and publish content</div>
+                </a>
+
+                <a href="/admin/articles/create" class="action-link">
+                    <div class="action-title">Create Article</div>
+                    <div class="action-description">Add new article</div>
+                </a>
+
+                <a href="/admin-users" class="action-link">
+                    <div class="action-title">Manage Users</div>
+                    <div class="action-description">User administration</div>
+                </a>
+
+                <a href="/admin-admins" class="action-link">
+                    <div class="action-title">Administrators</div>
+                    <div class="action-description">Admin management</div>
+                </a>
             </div>
-        </div>
 
-        <div class="recent-activity">
-            <h2>Recent Activity</h2>
-            <div class="activity-list">
-                <div class="activity-item">
-                    <span class="activity-icon">✏️</span>
-                    <div class="activity-content">
-                        <p><strong>Article Management</strong></p>
-                        <p>You can create, edit, and manage articles from the Articles section.</p>
-                    </div>
-                    <span class="activity-time">Available</span>
-                </div>
-
-                {% if session.isCurrentUserAdmin %}
-                    <div class="activity-item">
-                        <span class="activity-icon">👥</span>
-                        <div class="activity-content">
-                            <p><strong>User Management</strong></p>
-                            <p>As an admin, you can view and manage all user accounts.</p>
-                        </div>
-                        <span class="activity-time">Admin Only</span>
-                    </div>
-                {% endif %}
+            {# Updated logout section with regular CSS #}
+            <div class="logout-section">
+                <a href="/logout" class="logout-link">Logout</a>
             </div>
         </div>
     </div>

@@ -1,35 +1,35 @@
 <?php
+
 declare(strict_types=1);
 
 namespace GripAndGrin\Application\UseCases;
 
-use GripAndGrin\Domain\Entities\User;
 use GripAndGrin\Domain\Interfaces\UserRepositoryInterface;
-use InvalidArgumentException;
+use GripAndGrin\Domain\Entities\User;
 
 class AuthenticateUserUseCase
 {
-    public function __construct(
-        private readonly UserRepositoryInterface $userRepository
-    ) {}
+    private UserRepositoryInterface $userRepository;
 
-    public function execute(string $emailOrUsername, string $password): User
+    public function __construct(UserRepositoryInterface $userRepository)
     {
+        $this->userRepository = $userRepository;
+    }
+
+    public function execute(string $emailOrUsername, string $password): ?User
+    {
+        // Try to find user by email first, then username
         $user = $this->userRepository->findByEmail($emailOrUsername);
         if (!$user) {
             $user = $this->userRepository->findByUsername($emailOrUsername);
         }
 
-        if (!$user) {
-            throw new InvalidArgumentException('Invalid credentials');
-        }
-
-        if (!$user->isActive()) {
-            throw new InvalidArgumentException('Account is deactivated');
+        if (!$user || !$user->isActive()) {
+            return null;
         }
 
         if (!$user->verifyPassword($password)) {
-            throw new InvalidArgumentException('Invalid credentials');
+            return null;
         }
 
         return $user;

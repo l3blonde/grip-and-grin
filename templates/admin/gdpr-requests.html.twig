@@ -1,0 +1,111 @@
+{% extends "admin/layout.html.twig" %}
+
+{% block title %}GDPR Requests{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+        <h1 class="page-title">GDPR Data Deletion Requests</h1>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.pending }}</div>
+            <div class="stat-label">Pending Requests</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.processing }}</div>
+            <div class="stat-label">Processing</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.completed }}</div>
+            <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.total }}</div>
+            <div class="stat-label">Total Requests</div>
+        </div>
+    </div>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th>User</th>
+            <th>Email</th>
+            <th>Reason</th>
+            <th>Requested</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for request in requests %}
+            <tr>
+                <td>{{ request.username ?: 'Deleted User' }}</td>
+                <td>{{ request.email }}</td>
+                <td>{{ request.reason|slice(0, 50) }}{% if request.reason|length > 50 %}...{% endif %}</td>
+                <td>{{ request.requested_at|date('M j, Y') }}</td>
+                <td>
+                <span class="status-badge status-{{ request.status }}">
+                    {{ request.status|title }}
+                </span>
+                </td>
+                <td>
+                    <div class="actions">
+                        {% if request.status == 'pending' %}
+                            <form method="POST" action="/admin/gdpr/process-deletion" style="display: inline;">
+                                <input type="hidden" name="request_id" value="{{ request.id }}">
+                                <button type="submit" class="btn btn-small btn-primary" onclick="return confirm('Are you sure you want to process this deletion request? This will anonymize the user data.')">
+                                    Process
+                                </button>
+                            </form>
+                            <form method="POST" action="/admin/gdpr/reject-deletion" style="display: inline;">
+                                <input type="hidden" name="request_id" value="{{ request.id }}">
+                                <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Are you sure you want to reject this deletion request?')">
+                                    Reject
+                                </button>
+                            </form>
+                        {% else %}
+                            <span class="text-muted">{{ request.processed_at|date('M j, Y') }}</span>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="6" style="text-align: center; color: #666666; padding: 2rem;">
+                    No GDPR deletion requests found.
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <style>
+        .status-pending {
+            background: #f8f9fa;
+            color: #000000;
+            border: 1px solid #e5e5e5;
+        }
+
+        .status-processing {
+            background: #e9ecef;
+            color: #000000;
+            border: 1px solid #dee2e6;
+        }
+
+        .status-completed {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .status-rejected {
+            background: #6c757d;
+            color: #ffffff;
+        }
+
+        .text-muted {
+            color: #666666;
+            font-size: 0.875rem;
+        }
+    </style>
+{% endblock %}

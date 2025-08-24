@@ -1,45 +1,146 @@
 {% extends "base.html.twig" %}
 
-{% block title %}{{ article.title }} | {{ parent() }}{% endblock %}
+{% block title %}{{ article.title }} - Grip & Grin{% endblock %}
 
 {% block content %}
-    <article class="article-full">
+<style>
+.article-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.article-header {
+    margin-bottom: 2rem;
+}
+
+.article-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+}
+
+.article-date {
+    color: #666666;
+    font-size: 1.125rem;
+}
+
+.article-image {
+    width: 100%;
+    height: 400px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+    border: 1px solid #e5e5e5;
+}
+
+.article-content {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: #333333;
+    margin-bottom: 3rem;
+}
+
+.article-content p {
+    margin-bottom: 1.5rem;
+}
+
+.article-content h2 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 2rem 0 1rem 0;
+    color: #000000;
+}
+
+.article-content h3 {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin: 1.5rem 0 0.75rem 0;
+    color: #000000;
+}
+
+.article-navigation {
+    border-top: 2px solid #e5e5e5;
+    padding-top: 2rem;
+    margin-top: 3rem;
+}
+
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pagination-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: 2px solid #cccccc;
+    background: #f8f8f8;
+    color: #333333;
+}
+
+.pagination-btn:hover {
+    background: #000000;
+    color: white;
+    border-color: #000000;
+}
+
+.pagination-btn.disabled {
+    background: #f0f0f0;
+    color: #999999;
+    border-color: #e0e0e0;
+    cursor: not-allowed;
+}
+</style>
+
+<main class="article-container">
+    <article>
         <header class="article-header">
-            <h1 class="article-title-full">{{ article.title }}</h1>
-            <p class="article-meta-full">Published on {{ article.publishedAt|date("F j, Y") }}</p>
+            <h1 class="article-title">{{ article.title }}</h1>
+            
+            {% if article.publishedAt %}
+            <time class="article-date">
+                Published on {{ article.publishedAt|date('F j, Y') }}
+            </time>
+            {% endif %}
         </header>
 
-        {% if article.hasFeaturedImage %}
-            <div class="article-featured-image">
-                <picture>
-                    <source srcset="{{ article.featuredImage.fullPath }}" type="image/webp">
-                    <img src="{{ article.featuredImage.fullPath|replace({'.webp': '.jpg'}) }}"
-                         alt="{{ article.featuredImage.altText }}"
-                         class="featured-image"
-                         loading="lazy">
-                </picture>
-            </div>
+        {% if article.featuredImage or article.imageThumbnailPath or article.imageFullPath %}
+        <img src="{{ article.featuredImage ?: (article.imageFullPath ?: article.imageThumbnailPath) }}" 
+             alt="{{ article.imageAltText|default(article.title) }}" 
+             class="article-image">
         {% endif %}
 
         <div class="article-content">
-            {{ article.content|nl2br }}
+            {{ article.content|raw }}
         </div>
-    </article>
 
-    <!-- Article Navigation -->
-    {% if previousArticle or nextArticle %}
-        <nav class="article-navigation" role="navigation" aria-label="Article navigation">
-            {% if previousArticle %}
-                <a href="/article/{{ previousArticle.slug }}" class="nav-button nav-button-prev">
-                    ← Previous
-                </a>
-            {% endif %}
+        <nav class="article-navigation">
+            <div class="pagination">
+                <div>
+                    {% if previousArticle %}
+                    <a href="/article/{{ previousArticle.slug }}" class="pagination-btn">← Previous</a>
+                    {% else %}
+                    <span class="pagination-btn disabled">← Previous</span>
+                    {% endif %}
+                </div>
 
-            {% if nextArticle %}
-                <a href="/article/{{ nextArticle.slug }}" class="nav-button nav-button-next">
-                    Next →
-                </a>
-            {% endif %}
+                <div>
+                    {% if nextArticle %}
+                    <a href="/article/{{ nextArticle.slug }}" class="pagination-btn">Next →</a>
+                    {% else %}
+                    <span class="pagination-btn disabled">Next →</span>
+                    {% endif %}
+                </div>
+            </div>
         </nav>
-    {% endif %}
+    </article>
+</main>
 {% endblock %}

@@ -1,66 +1,330 @@
-{% extends "base.html.twig" %}
+{% extends "admin/layout.html.twig" %}
 
-{% block title %}Manage Users | Admin | {{ parent() }}{% endblock %}
+{% block title %}Users Management{% endblock %}
 
 {% block content %}
-    <div class="admin-users">
-        <div class="admin-header">
-            <h1>Manage Users</h1>
-            <p>View and manage all user accounts</p>
-        </div>
+    <div class="page-header">
+        <h1 class="page-title">Users Management</h1>
+        <button onclick="showCreateUserModal()" class="btn btn-primary">Add New Editor</button>
+    </div>
 
-        <div class="users-table">
-            <table>
-                <thead>
-                <tr>
-                    <th>User</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Joined</th>
-                    <th>Actions</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for user in users %}
-                    <tr>
-                        <td>
-                            <div class="user-info">
-                                <strong>{{ user.fullName }}</strong>
-                                <small>@{{ user.username }}</small>
-                            </div>
-                        </td>
-                        <td>
-                            {{ user.email }}
-                            {% if user.isEmailVerified %}
-                                <span class="verified-badge">✓</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                                <span class="role-badge role-{{ user.role.value }}">
-                                    {{ user.role.value|title }}
-                                </span>
-                        </td>
-                        <td>
-                                <span class="status-badge status-{{ user.isActive ? 'active' : 'inactive' }}">
-                                    {{ user.isActive ? 'Active' : 'Inactive' }}
-                                </span>
-                        </td>
-                        <td>{{ user.createdAt|date("M j, Y") }}</td>
-                        <td class="actions">
-                            <a href="/profile/{{ user.id }}" class="action-link view">View Profile</a>
-                            {% if user.id != session.currentUserId %}
-                                <a href="/admin/users/{{ user.id }}/edit" class="action-link edit">Edit</a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="6" class="no-users">No users found.</td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+    <!-- Added success/error message display -->
+    {% if session.success_message %}
+        <div class="alert alert-success">{{ session.success_message }}</div>
+    {% endif %}
+    {% if session.error_message %}
+        <div class="alert alert-error">{{ session.error_message }}</div>
+    {% endif %}
+
+    <!-- Added create user modal -->
+    <div id="createUserModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Create New Editor</h3>
+            <form method="POST" action="/admin-users/create">
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label>Role:</label>
+                    <select name="role">
+                        <option value="editor">Editor</option>
+                        <option value="user">User</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Create User</button>
+                    <button type="button" onclick="hideCreateUserModal()" class="btn btn-secondary">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Joined</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for user in users %}
+            <tr>
+                <td>{{ user.username }}</td>
+                <td>{{ user.email }}</td>
+                <td><span class="role-badge role-{{ user.role }}">{{ user.role|title }}</span></td>
+                <td>{{ user.createdAt|date('M j, Y') }}</td>
+                <td>
+                <span class="status-badge {{ user.isActive ? 'status-active' : 'status-inactive' }}">
+                    {{ user.isActive ? 'Active' : 'Inactive' }}
+                </span>
+                </td>
+                <td>
+                    <!-- Fixed form action URL -->
+                    <form method="POST" action="/admin-users/delete" style="display: inline;" onsubmit="return confirm('Are you sure you want to deactivate this user?')">
+                        <input type="hidden" name="user_id" value="{{ user.id }}">
+                        <button type="submit" class="btn btn-small btn-danger">Deactivate</button>
+                    </form>
+                    <button onclick="resetUserPassword({{ user.id }})" class="btn btn-small btn-secondary">Reset Password</button>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        function showCreateUserModal() {
+            document.getElementById('createUserModal').style.display = 'block';
+        }
+
+        function hideCreateUserModal() {
+            document.getElementById('createUserModal').style.display = 'none';
+        }
+
+        function resetUserPassword(userId) {
+            if (confirm('Generate a new password for this user?')) {
+                fetch('/admin-users/reset-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'user_id=' + userId
+                }).then(() => location.reload());
+            }
+        }
+    </script>
+
+    <style>
+        /* Enhanced styling with consistent 8px border-radius and black/white/grey/silver colors */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e5e5;
+        }
+
+        .page-title {
+            color: #333;
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #333;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #555;
+        }
+
+        .btn-secondary {
+            background: #999;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #777;
+        }
+
+        .btn-danger {
+            background: #666;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #444;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            margin-right: 0.5rem;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-content h3 {
+            color: #333;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e5e5e5;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #999;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .table th {
+            background: #f8f8f8;
+            color: #333;
+            font-weight: 600;
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 2px solid #e5e5e5;
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+            color: #555;
+        }
+
+        .table tbody tr:hover {
+            background: #fafafa;
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #f8f8f8;
+            color: #333;
+            border: 2px solid #e5e5e5;
+        }
+
+        .alert-error {
+            background: #f5f5f5;
+            color: #333;
+            border: 2px solid #ccc;
+        }
+
+        .role-badge,
+        .status-badge {
+            padding: 0.375rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .role-admin {
+            background: #333;
+            color: white;
+        }
+
+        .role-editor {
+            background: #666;
+            color: white;
+        }
+
+        .role-user {
+            background: #999;
+            color: white;
+        }
+
+        .status-active {
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #ccc;
+        }
+
+        .status-inactive {
+            background: #e5e5e5;
+            color: #666;
+            border: 1px solid #bbb;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .table {
+                font-size: 0.875rem;
+            }
+
+            .btn-small {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
 {% endblock %}

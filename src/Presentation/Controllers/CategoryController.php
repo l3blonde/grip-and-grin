@@ -3,28 +3,65 @@ declare(strict_types=1);
 
 namespace GripAndGrin\Presentation\Controllers;
 
-use GripAndGrin\Application\UseCases\GetArticlesByCategoryUseCase;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Twig\Environment;
+use GripAndGrin\Infrastructure\Repositories\PDOCategoryRepository;
+use GripAndGrin\Infrastructure\Repositories\PDOArticleRepository;
+use PDO;
 
 class CategoryController
 {
-    public function __construct(
-        private readonly Environment $twig,
-        private readonly GetArticlesByCategoryUseCase $getArticlesByCategoryUseCase
-    ) {}
+    private PDOCategoryRepository $categoryRepository;
+    private PDOArticleRepository $articleRepository;
 
-    public function show(string $categorySlug, Request $request): Response
+    public function __construct(PDO $pdo)
     {
-        $page = max(1, (int) $request->query->get('page', 1));
-        $result = $this->getArticlesByCategoryUseCase->execute($categorySlug, $page);
+        $this->categoryRepository = new PDOCategoryRepository($pdo);
+        $this->articleRepository = new PDOArticleRepository($pdo);
+    }
 
-        if (!$result['category']) {
-            return new Response($this->twig->render('404.html.twig'), Response::HTTP_NOT_FOUND);
+    public function show(string $slug): ?array
+    {
+        $category = $this->categoryRepository->findBySlug($slug);
+        
+        if (!$category) {
+            return null;
         }
 
-        $content = $this->twig->render('category.html.twig', $result);
-        return new Response($content);
+        $page = (int)($_GET['page'] ?? 1);
+        $limit = 5; // Same as home page - 5 articles per page
+        $offset = ($page - 1) * $limit;
+
+        $articles = $this->articleRepository->findByCategory($category->getId(), $limit, $offset);
+        $totalArticles = $this->articleRepository->countByCategory($category->getId());
+        $totalPages = (int)ceil($totalArticles / $limit);
+
+        $articlesData = [];
+        foreach ($articles as $article) {
+            $articlesData[] = [
+                'id' => $article->getId(),
+                'title' => $article->getTitle(),
+                'slug' => $article->getSlug(),
+                'excerpt' => $article->getDisplayExcerpt(),
+                'publishedAt' => $article->getPublishedAt(),
+                'featuredImage' => $article->getFeaturedImage(),
+                'imageThumbnailPath' => $article->getImageThumbnailPath(),
+                'imageAltText' => $article->getImageAltText()
+            ];
+        }
+
+        return [
+            'category' => [
+                'id' => $category->getId(),
+                'name' => $category->getName(),
+                'slug' => $category->getSlug(),
+                'description' => $category->getDescription()
+            ],
+            'articles' => $articlesData,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'hasPreviousPage' => $page > 1,
+            'hasNextPage' => $page < $totalPages,
+            'previousPage' => $page - 1,
+            'nextPage' => $page + 1
+        ];
     }
 }

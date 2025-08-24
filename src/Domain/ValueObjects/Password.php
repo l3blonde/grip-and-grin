@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace GripAndGrin\Domain\ValueObjects;
@@ -7,29 +8,46 @@ use InvalidArgumentException;
 
 class Password
 {
-    private string $hashedValue;
+    private readonly string $hashedValue;
 
     public function __construct(string $plainPassword)
     {
-        if (strlen($plainPassword) < 8) {
-            throw new InvalidArgumentException('Password must be at least 8 characters long');
-        }
-
-        if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/', $plainPassword)) {
-            throw new InvalidArgumentException('Password must contain at least one uppercase letter, one lowercase letter, and one number');
-        }
-
+        $this->validatePassword($plainPassword);
         $this->hashedValue = password_hash($plainPassword, PASSWORD_DEFAULT);
     }
 
     public static function fromHash(string $hashedPassword): self
     {
-        $instance = new self('TempPassword123'); // Temporary valid password for validation
-        $instance->hashedValue = $hashedPassword;
+        // Create instance without validation since hash is already validated
+        $instance = new class($hashedPassword) extends Password {
+            public function __construct(string $hashedPassword) {
+                // Skip validation and directly set the hash
+                $this->hashedValue = $hashedPassword;
+            }
+        };
         return $instance;
     }
 
-    public function getHashedValue(): string
+    private function validatePassword(string $password): void
+    {
+        if (strlen($password) < 8) {
+            throw new InvalidArgumentException('Password must be at least 8 characters long');
+        }
+
+        if (!preg_match('/[A-Z]/', $password)) {
+            throw new InvalidArgumentException('Password must contain at least one uppercase letter');
+        }
+
+        if (!preg_match('/[a-z]/', $password)) {
+            throw new InvalidArgumentException('Password must contain at least one lowercase letter');
+        }
+
+        if (!preg_match('/[0-9]/', $password)) {
+            throw new InvalidArgumentException('Password must contain at least one number');
+        }
+    }
+
+    public function getHash(): string
     {
         return $this->hashedValue;
     }

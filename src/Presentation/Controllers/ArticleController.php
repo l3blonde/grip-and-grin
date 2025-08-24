@@ -4,30 +4,31 @@ declare(strict_types=1);
 namespace GripAndGrin\Presentation\Controllers;
 
 use GripAndGrin\Application\UseCases\GetArticleBySlugUseCase;
-use Symfony\Component\HttpFoundation\Response;
-use Twig\Environment;
+use GripAndGrin\Infrastructure\Repositories\PDOArticleRepository;
+use PDO;
 
 class ArticleController
 {
-    public function __construct(
-        private readonly Environment $twig,
-        private readonly GetArticleBySlugUseCase $getArticleBySlugUseCase
-    ) {}
+    private GetArticleBySlugUseCase $getArticleBySlugUseCase;
 
-    public function show(string $slug): Response
+    public function __construct(PDO $pdo)
+    {
+        $articleRepository = new PDOArticleRepository($pdo);
+        $this->getArticleBySlugUseCase = new GetArticleBySlugUseCase($articleRepository);
+    }
+
+    public function show(string $slug): ?array
     {
         $result = $this->getArticleBySlugUseCase->execute($slug);
-
+        
         if (!$result['article']) {
-            return new Response($this->twig->render('404.html.twig'), Response::HTTP_NOT_FOUND);
+            return null;
         }
 
-        $content = $this->twig->render('article-detail.html.twig', [
+        return [
             'article' => $result['article'],
             'nextArticle' => $result['nextArticle'],
             'previousArticle' => $result['previousArticle']
-        ]);
-
-        return new Response($content);
+        ];
     }
 }
